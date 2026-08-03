@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🏏 MorningStream</title>
+    <title>🏏 Morning MatchStream</title>
     <style>
         :root {
             --bg: #0a0a0f;
@@ -106,7 +106,7 @@
     <div class="auth-overlay" id="authOverlay">
         <div class="auth-box">
             <div class="logo">🏏</div>
-            <h2>MatchStream Pro</h2>
+            <h2>Morning MatchStream </h2>
             <input type="text" id="usernameInput" placeholder="Username" autocomplete="off">
             <input type="password" id="passwordInput" placeholder="Password">
             <button class="btn btn-primary" id="authBtn">🔐 Login</button>
@@ -477,4 +477,49 @@
             document.getElementById('confirmOverlay').classList.add('active'); });
         document.getElementById('btnLogout').addEventListener('click', logout);
         document.getElementById('searchInput').addEventListener('input', loadRecordings);
-        document.getElementById('sendComment').addEventListener('click', () =>
+        document.getElementById('sendComment').addEventListener('click', () => { const i = document.getElementById(
+                'commentInput'); if (i.value.trim()) { addComment(i.value.trim());
+                i.value = ''; } });
+        document.getElementById('commentInput').addEventListener('keydown', e => { if (e.key === 'Enter') { const i =
+                    document.getElementById('commentInput'); if (i.value.trim()) { addComment(i.value.trim());
+                    i.value = ''; } } });
+        document.getElementById('closeModal').addEventListener('click', () => { const v = document.getElementById(
+                'playbackVideo');
+            v.pause();
+            v.src = '';
+            document.getElementById('playbackModal').classList.remove('active'); });
+        document.getElementById('confirmYes').addEventListener('click', () => { if (pendingAction) pendingAction();
+            document.getElementById('confirmOverlay').classList.remove('active');
+            pendingAction = null; });
+        document.getElementById('confirmNo').addEventListener('click', () => { document.getElementById('confirmOverlay')
+                .classList.remove('active');
+            pendingAction = null; });
+
+        function toast(m) { const t = document.createElement('div');
+            t.className = 'toast';
+            t.textContent = m;
+            document.body.appendChild(t);
+            setTimeout(() => t.remove(), 2500); }
+
+        const saved = sessionStorage.getItem('ms_auth');
+        if (saved) {
+            currentUser = JSON.parse(saved);
+            document.getElementById('authOverlay').classList.add('hidden');
+            document.getElementById('app').classList.add('active');
+            const isSA = currentUser.role === 'superadmin';
+            document.getElementById('roleBadge').textContent = isSA ? '👑 ADMIN' : '👤 USER';
+            document.getElementById('roleBadge').className = 'role-badge ' + (isSA ? 'role-superadmin' : 'role-normal');
+            document.getElementById('userInfoTop').textContent = (isSA ? '👑 ' : '👤 ') + currentUser.username;
+            document.getElementById('btnDeleteAll').style.display = isSA ? 'inline-block' : 'none';
+            loadRecordings();
+            renderComments();
+            startCam();
+            setInterval(loadRecordings, 30000);
+            setInterval(renderComments, 15000);
+        }
+
+        console.log('🏏 MatchStream Pro - Firestore Version Ready!');
+        console.log('📦 Storage: Firestore (1GB Free) - No Upgrade Needed!');
+    </script>
+</body>
+</html>
