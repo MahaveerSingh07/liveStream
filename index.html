@@ -625,4 +625,94 @@
         document.getElementById('btnStopStream').addEventListener('click', stopCam);
         document.getElementById('btnRecord').addEventListener('click', () => isRecording ? stopRec() : startRec());
         document.getElementById('btnRotate').addEventListener('click', () => {
-            currentRotation = (currentRotation + 90)
+            currentRotation = (currentRotation + 90) % 360;
+            const vc = document.getElementById('videoContainer');
+            vc.style.transform = `rotate(${currentRotation}deg)`;
+            vc.style.aspectRatio = (currentRotation === 90 || currentRotation === 270) ? '9/16' : '16/9';
+        });
+        document.getElementById('btnFullscreen').addEventListener('click', () => {
+            const vc = document.getElementById('videoContainer');
+            document.fullscreenElement ? document.exitFullscreen() : vc.requestFullscreen().catch(() => {});
+        });
+        document.getElementById('btnMic').addEventListener('click', () => {
+            if (!mediaStream) return;
+            isMicOn = !isMicOn;
+            mediaStream.getAudioTracks().forEach(t => t.enabled = isMicOn);
+            document.getElementById('btnMic').textContent = isMicOn ? '🎤 On' : '🔇 Off';
+        });
+        document.getElementById('btnDeleteAll').addEventListener('click', async () => {
+            if (currentUser.role !== 'superadmin') return;
+            document.getElementById('confirmMsg').textContent = 'Delete ALL recordings?';
+            pendingAction = async () => {
+                const snap = await db.collection('recordings').get();
+                snap.forEach(async doc => {
+                    try { await storage.ref(doc.data().storagePath).delete(); } catch (e) {}
+                    await doc.ref.delete();
+                });
+                loadRecordings();
+                toast('🗑 All deleted');
+            };
+            document.getElementById('confirmOverlay').classList.add('active');
+        });
+        document.getElementById('btnLogout').addEventListener('click', logout);
+        document.getElementById('searchInput').addEventListener('input', loadRecordings);
+        document.getElementById('sendComment').addEventListener('click', () => {
+            const inp = document.getElementById('commentInput');
+            if (inp.value.trim()) { addComment(inp.value.trim());
+                inp.value = ''; }
+        });
+        document.getElementById('commentInput').addEventListener('keydown', e => {
+            if (e.key === 'Enter') {
+                const inp = document.getElementById('commentInput');
+                if (inp.value.trim()) { addComment(inp.value.trim());
+                    inp.value = ''; }
+            }
+        });
+        document.getElementById('closeModal').addEventListener('click', () => {
+            const v = document.getElementById('playbackVideo');
+            v.pause();
+            v.src = '';
+            document.getElementById('playbackModal').classList.remove('active');
+        });
+        document.getElementById('confirmYes').addEventListener('click', () => {
+            if (pendingAction) pendingAction();
+            document.getElementById('confirmOverlay').classList.remove('active');
+            pendingAction = null;
+        });
+        document.getElementById('confirmNo').addEventListener('click', () => {
+            document.getElementById('confirmOverlay').classList.remove('active');
+            pendingAction = null;
+        });
+
+        function toast(msg) {
+            const t = document.createElement('div');
+            t.className = 'toast';
+            t.textContent = msg;
+            document.body.appendChild(t);
+            setTimeout(() => t.remove(), 2500);
+        }
+
+        // Auto-login check
+        const saved = sessionStorage.getItem('ms_auth');
+        if (saved) {
+            currentUser = JSON.parse(saved);
+            document.getElementById('authOverlay').classList.add('hidden');
+            document.getElementById('app').classList.add('active');
+            const isSA = currentUser.role === 'superadmin';
+            document.getElementById('roleBadge').textContent = isSA ? '👑 ADMIN' : '👤 USER';
+            document.getElementById('roleBadge').className = 'role-badge ' + (isSA ? 'role-superadmin' : 'role-normal');
+            document.getElementById('userInfoTop').textContent = (isSA ? '👑 ' : '👤 ') + currentUser.username;
+            document.getElementById('btnDeleteAll').style.display = isSA ? 'inline-block' : 'none';
+            loadRecordings();
+            renderComments();
+            startCam();
+            setInterval(loadRecordings, 30000);
+            setInterval(renderComments, 15000);
+        }
+
+        console.log('🏏 MatchStream Pro Ready!');
+        console.log('👑 admin/admin123 | 👤 user/user123');
+        console.log('📦 Firebase 5GB Storage Connected!');
+    </script>
+</body>
+</html>
