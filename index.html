@@ -42,9 +42,11 @@
         .rec-timer{font-family:monospace;font-size:.9rem;font-weight:700;color:var(--danger);margin-left:auto;display:none;align-items:center;gap:.3rem}
         .rec-timer.visible{display:flex}.rec-dot{width:8px;height:8px;background:var(--danger);border-radius:50%;animation:pulse .8s infinite}
         @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+        .upload-progress{width:100%;height:4px;background:var(--border);border-radius:2px;margin-top:.3rem;display:none;overflow:hidden}
+        .upload-progress.visible{display:block}
+        .upload-progress .bar{height:100%;background:var(--success);width:0%;transition:width .3s}
         .sidebar{flex:1 1 30%;min-width:280px;background:var(--surface);border-radius:14px;border:1px solid var(--border);padding:1rem;display:flex;flex-direction:column;max-height:calc(100vh - 120px)}
         .sidebar h3{font-size:1rem;margin-bottom:.5rem;color:var(--gold);display:flex;justify-content:space-between;align-items:center}
-        .refresh-status{font-size:.6rem;color:var(--text2)}
         .search-box{width:100%;padding:.5rem .8rem;border-radius:20px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-size:.85rem;margin-bottom:.8rem;outline:none}
         .recordings-list{flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:.5rem}
         .recording-item{background:var(--surface2);border-radius:8px;padding:.7rem;display:flex;justify-content:space-between;align-items:center;gap:.5rem;flex-wrap:wrap;border:1px solid transparent}
@@ -104,7 +106,7 @@
             <div style="display:flex;align-items:center;gap:.8rem;"><span class="logo-text">🏏 MatchStream</span><span class="role-badge" id="roleBadge">USER</span></div>
             <div class="header-actions">
                 <span style="font-size:.75rem;color:var(--text2)" id="userInfoTop">👤 User</span>
-                <button class="btn-sm btn-refresh" id="btnRefresh">🔄 Refresh</button>
+                <button class="btn-sm btn-refresh" id="btnRefresh">🔄</button>
                 <button class="btn-sm" id="btnRotate">🔄</button>
                 <button class="btn-sm" id="btnFullscreen">⛶</button>
                 <button class="btn-sm" id="btnStartStream">▶️</button>
@@ -122,11 +124,12 @@
                 </div>
                 <div class="video-controls-bar">
                     <button class="btn-icon" id="btnMic">🎤 On</button>
+                    <div class="upload-progress" id="uploadProgress"><div class="bar" id="uploadBar"></div></div>
                     <div class="rec-timer" id="recTimer"><span class="rec-dot"></span><span id="timerText">00:00</span></div>
                 </div>
             </div>
             <div class="sidebar">
-                <h3>📁 Recordings <span style="display:flex;align-items:center;gap:.5rem"><span style="font-size:.65rem;color:var(--text2)" id="recCount">0</span><span class="refresh-status" id="refreshStatus">Auto:10s</span></span></h3>
+                <h3>📁 Recordings <span style="font-size:.65rem;color:var(--text2)" id="recCount">0</span></h3>
                 <input type="text" class="search-box" id="searchInput" placeholder="🔍 Search...">
                 <div class="recordings-list" id="recordingsList"><div style="color:var(--text2);text-align:center;padding:1rem">Loading...</div></div>
                 <div class="comments-section">
@@ -154,17 +157,7 @@
 
         firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
-        
-        // TEST FIRESTORE CONNECTION
-        db.collection('_test_').doc('connection').set({ time: Date.now() })
-            .then(() => {
-                console.log('✅ Firestore connected successfully!');
-                db.collection('_test_').doc('connection').delete();
-            })
-            .catch(err => {
-                console.error('❌ Firestore connection failed:', err.message);
-                alert('Firestore Error: ' + err.message + '\n\nCheck Rules at:\nhttps://console.firebase.google.com/project/matchstream-pro/firestore/rules');
-            });
+        console.log('✅ Firebase connected');
 
         const USERS_KEY = 'ms_users_v1';
         const COMMENTS_KEY = 'ms_comments_v1';
@@ -178,6 +171,7 @@
         let isRecording = false, recordingStartTime = null, timerInterval = null;
         let isMicOn = true, currentRotation = 0;
         let currentUser = null, pendingAction = null, refreshInterval = null;
+        const CHUNK_SIZE = 900000; // 900KB per chunk (Firestore limit 1MB)
 
         function getUsers() {
             let u = JSON.parse(localStorage.getItem(USERS_KEY)) || [];
@@ -205,23 +199,21 @@
             document.getElementById('commentCount').textContent = '(' + comments.length + ')';
             const isSA = currentUser && currentUser.role === 'superadmin';
             document.getElementById('commentsList').innerHTML = comments.length ? comments.slice(-30).map(c => `
-                <div class="comment-item">
-                    <span class="comment-user">${c.role==='superadmin'?'👑':'👤'} ${c.username}</span>
-                    <span class="comment-text">${c.text.replace(/</g,'&lt;')}</span>
-                    <span class="comment-time">${Math.floor((Date.now()-c.timestamp)/60000)}m</span>
-                    ${isSA?`<button class="comment-delete-btn" onclick="window._dc('${c.id}')">✕</button>`:''}
-                </div>`).join('') : '<div style="color:var(--text2);font-size:.7rem">No comments</div>';
+                <div class="comment-item"><span class="comment-user">${c.role==='superadmin'?'👑':'👤'} ${c.username}</span><span class="comment-text">${c.text.replace(/</g,'&lt;')}</span><span class="comment-time">${Math.floor((Date.now()-c.timestamp)/60000)}m</span>${isSA?`<button class="comment-delete-btn" onclick="window._dc('${c.id}')">✕</button>`:''}</div>`).join('') : '<div style="color:var(--text2);font-size:.7rem">No comments</div>';
         }
         window._dc = deleteComment;
 
+        // SPLIT VIDEO INTO CHUNKS
+        function splitBase64(base64, chunkSize) {
+            const chunks = [];
+            for (let i = 0; i < base64.length; i += chunkSize) {
+                chunks.push(base64.substring(i, i + chunkSize));
+            }
+            return chunks;
+        }
+
         async function saveRecording(blob) {
             if(!currentUser) return;
-            
-            // Check size - max 10MB for base64
-            if(blob.size > 10 * 1024 * 1024) {
-                toast('❌ Max 10MB. Shorter recording pls.');
-                return;
-            }
             
             const meta = {
                 id: Date.now().toString(36) + Math.random().toString(36).substr(2,8),
@@ -230,27 +222,48 @@
                 size: blob.size,
                 duration: recordingStartTime ? Math.round((Date.now() - recordingStartTime) / 1000) : 0,
                 uploadedBy: currentUser.username,
-                uploadedByRole: currentUser.role
+                uploadedByRole: currentUser.role,
+                totalChunks: 0
             };
 
-            toast('📤 Uploading ' + (blob.size/1024/1024).toFixed(1) + 'MB...');
-            
+            const progress = document.getElementById('uploadProgress');
+            const bar = document.getElementById('uploadBar');
+            progress.classList.add('visible');
+            bar.style.width = '0%';
+            toast('📤 Processing...');
+
             const reader = new FileReader();
             reader.onload = async () => {
                 try {
+                    const base64 = reader.result;
+                    const chunks = splitBase64(base64, CHUNK_SIZE);
+                    meta.totalChunks = chunks.length;
+                    
+                    // Save metadata first
                     await db.collection('recordings').doc(meta.id).set({
                         ...meta,
-                        videoData: reader.result,
                         expiry: Date.now() + EXPIRY_DAYS * 86400000
                     });
-                    toast('✅ Uploaded successfully!');
+                    
+                    // Upload chunks
+                    for (let i = 0; i < chunks.length; i++) {
+                        await db.collection('recordings').doc(meta.id).collection('chunks').doc('chunk_' + i).set({
+                            index: i,
+                            data: chunks[i]
+                        });
+                        bar.style.width = ((i + 1) / chunks.length * 100) + '%';
+                    }
+                    
+                    progress.classList.remove('visible');
+                    toast('✅ Uploaded! ' + chunks.length + ' chunks');
                     loadRecordings();
                 } catch(e) {
+                    progress.classList.remove('visible');
                     console.error('Upload error:', e);
                     toast('❌ Error: ' + (e.message || 'Unknown'));
                 }
             };
-            reader.onerror = () => toast('❌ File read error');
+            reader.onerror = () => { progress.classList.remove('visible'); toast('❌ File read error'); };
             reader.readAsDataURL(blob);
         }
 
@@ -261,8 +274,6 @@
                 const recs = [];
                 snap.forEach(doc => recs.push({ id: doc.id, ...doc.data() }));
                 
-                if(!silent) document.getElementById('refreshStatus').textContent = 'Updated:' + new Date().toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
-                
                 const now = Date.now();
                 const active = recs.filter(r => r.expiry > now);
                 const filter = document.getElementById('searchInput').value.toLowerCase();
@@ -272,7 +283,7 @@
                 document.getElementById('recordingsList').innerHTML = filtered.length ? filtered.map(r => {
                     const canDel = currentUser && (currentUser.role === 'superadmin' || r.uploadedBy === currentUser.username);
                     return `<div class="recording-item"><div class="recording-info">
-                        <div class="rec-name">🎬 ${r.name}</div>
+                        <div class="rec-name">🎬 ${r.name} ${r.totalChunks>1?'('+r.totalChunks+' parts)':''}</div>
                         <div class="rec-meta">📅 ${new Date(r.timestamp).toLocaleString('en-IN')} • ⏱ ${String(Math.floor((r.duration||0)/60)).padStart(2,'0')}:${String((r.duration||0)%60).padStart(2,'0')} • 📦 ${(r.size/1024/1024).toFixed(1)}MB</div>
                         <div class="expiry">🗑 ${new Date(r.expiry).toLocaleDateString('en-IN',{day:'2-digit',month:'short'})}</div>
                         <div class="uploader">📹 ${r.uploadedBy} ${r.uploadedByRole==='superadmin'?'👑':''}</div>
@@ -280,26 +291,41 @@
                         <button class="btn-play" onclick="window._pr('${r.id}')">▶</button>
                         ${canDel?`<button class="btn-delete-rec" onclick="window._dr('${r.id}')">🗑</button>`:''}
                     </div></div>`;
-                }).join('') : '<div style="color:var(--text2);text-align:center;padding:1rem">No recordings<br><small>🔄 Refresh to check</small></div>';
+                }).join('') : '<div style="color:var(--text2);text-align:center;padding:1rem">No recordings</div>';
             } catch(e) {
                 console.error('Load error:', e);
-                document.getElementById('recordingsList').innerHTML = '<div style="color:var(--danger);text-align:center;padding:1rem">⚠️ ' + e.message + '</div>';
             }
         }
 
         window._pr = async function(id) {
             try {
                 const doc = await db.collection('recordings').doc(id).get();
-                if(doc.exists) {
-                    document.getElementById('playbackVideo').src = doc.data().videoData;
-                    document.getElementById('playbackModal').classList.add('active');
-                } else { toast('❌ Not found'); }
+                if(!doc.exists) { toast('❌ Not found'); return; }
+                
+                const meta = doc.data();
+                if(meta.totalChunks > 1) {
+                    toast('⏳ Loading chunks...');
+                    const chunksSnap = await db.collection('recordings').doc(id).collection('chunks').orderBy('index').get();
+                    let fullBase64 = '';
+                    chunksSnap.forEach(chunk => { fullBase64 += chunk.data().data; });
+                    document.getElementById('playbackVideo').src = fullBase64;
+                } else {
+                    // Old format - single chunk
+                    document.getElementById('playbackVideo').src = meta.videoData || '';
+                }
+                document.getElementById('playbackModal').classList.add('active');
             } catch(e) { toast('❌ Play error'); }
         };
 
         window._dr = async function(id) {
             document.getElementById('confirmMsg').textContent = 'Delete?';
-            pendingAction = async () => { await db.collection('recordings').doc(id).delete(); loadRecordings(); toast('🗑 Deleted'); };
+            pendingAction = async () => {
+                // Delete chunks first
+                const chunksSnap = await db.collection('recordings').doc(id).collection('chunks').get();
+                chunksSnap.forEach(d => d.ref.delete());
+                await db.collection('recordings').doc(id).delete();
+                loadRecordings(); toast('🗑 Deleted');
+            };
             document.getElementById('confirmOverlay').classList.add('active');
         };
 
@@ -374,7 +400,7 @@
                 loadRecordings(); renderComments(); startCam();
                 if(refreshInterval) clearInterval(refreshInterval);
                 refreshInterval = setInterval(() => loadRecordings(true), 10000);
-                toast('✅ Welcome!');
+                toast('✅ Welcome! Chunked upload ready');
             } else { document.getElementById('authError').textContent='❌ Invalid!'; }
         }
 
@@ -395,7 +421,7 @@
         document.getElementById('btnRotate').addEventListener('click', () => { currentRotation=(currentRotation+90)%360; const vc=document.getElementById('videoContainer'); vc.style.transform=`rotate(${currentRotation}deg)`; vc.style.aspectRatio=(currentRotation===90||currentRotation===270)?'9/16':'16/9'; });
         document.getElementById('btnFullscreen').addEventListener('click', () => { const vc=document.getElementById('videoContainer'); document.fullscreenElement?document.exitFullscreen():vc.requestFullscreen().catch(()=>{}); });
         document.getElementById('btnMic').addEventListener('click', () => { if(!mediaStream) return; isMicOn=!isMicOn; mediaStream.getAudioTracks().forEach(t=>t.enabled=isMicOn); document.getElementById('btnMic').textContent=isMicOn?'🎤 On':'🔇 Off'; });
-        document.getElementById('btnDeleteAll').addEventListener('click', async () => { if(currentUser.role!=='superadmin') return; document.getElementById('confirmMsg').textContent='Delete ALL?'; pendingAction=async()=>{const s=await db.collection('recordings').get();s.forEach(d=>d.ref.delete());loadRecordings();toast('🗑 All deleted');}; document.getElementById('confirmOverlay').classList.add('active'); });
+        document.getElementById('btnDeleteAll').addEventListener('click', async () => { if(currentUser.role!=='superadmin') return; document.getElementById('confirmMsg').textContent='Delete ALL?'; pendingAction=async()=>{const s=await db.collection('recordings').get(); for(const d of s.docs){const chunks=await d.ref.collection('chunks').get();chunks.forEach(c=>c.ref.delete());d.ref.delete();} loadRecordings();toast('🗑 All deleted');}; document.getElementById('confirmOverlay').classList.add('active'); });
         document.getElementById('btnLogout').addEventListener('click', logout);
         document.getElementById('searchInput').addEventListener('input', () => loadRecordings());
         document.getElementById('sendComment').addEventListener('click', () => { const i=document.getElementById('commentInput'); if(i.value.trim()){addComment(i.value.trim());i.value='';} });
