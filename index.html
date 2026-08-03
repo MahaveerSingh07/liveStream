@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🏏 MatchStream Pro - Multi User</title>
+    <title>🏏 MatchStream Pro - Firebase Storage</title>
     <style>
         :root {
             --bg: #0a0a0f;
@@ -32,286 +32,139 @@
             overflow-x: hidden;
         }
 
-        /* ========== AUTH SCREEN ========== */
         .auth-overlay {
-            position: fixed;
-            inset: 0;
+            position: fixed; inset: 0;
             background: radial-gradient(ellipse at center, #1a1a3e 0%, #0a0a0f 70%);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            z-index: 1000;
+            display: flex; align-items: center; justify-content: center; z-index: 1000;
             transition: all 0.5s ease;
         }
-        .auth-overlay.hidden {
-            opacity: 0;
-            pointer-events: none;
-            transform: scale(0.9);
-        }
+        .auth-overlay.hidden { opacity: 0; pointer-events: none; transform: scale(0.9); }
         .auth-box {
-            background: var(--surface);
-            border: 1px solid var(--border);
-            border-radius: var(--radius);
-            padding: 3rem 2.5rem;
-            width: 90%;
-            max-width: 420px;
-            box-shadow: var(--shadow);
-            text-align: center;
-            position: relative;
-            overflow: hidden;
+            background: var(--surface); border: 1px solid var(--border);
+            border-radius: var(--radius); padding: 3rem 2.5rem; width: 90%;
+            max-width: 420px; box-shadow: var(--shadow); text-align: center;
+            position: relative; overflow: hidden;
         }
         .auth-box::before {
-            content: '';
-            position: absolute;
-            top: -50%;
-            left: -50%;
-            width: 200%;
-            height: 200%;
+            content: ''; position: absolute; top: -50%; left: -50%; width: 200%; height: 200%;
             background: conic-gradient(from 0deg, transparent, var(--accent), transparent, var(--gold), transparent);
-            opacity: 0.05;
-            animation: rotateGlow 8s linear infinite;
+            opacity: 0.05; animation: rotateGlow 8s linear infinite;
         }
         @keyframes rotateGlow { 100% { transform: rotate(360deg); } }
         .auth-box .logo { font-size: 3.5rem; margin-bottom: 0.5rem; position: relative; }
         .auth-box h2 {
-            font-size: 1.6rem;
-            margin-bottom: 0.3rem;
+            font-size: 1.6rem; margin-bottom: 0.3rem;
             background: linear-gradient(135deg, #e94560, #f0c040);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            position: relative;
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent; position: relative;
         }
-        .auth-box .subtitle {
-            font-size: 0.8rem;
-            color: var(--text2);
-            margin-bottom: 1.8rem;
-            position: relative;
-        }
+        .auth-box .subtitle { font-size: 0.8rem; color: var(--text2); margin-bottom: 1.8rem; position: relative; }
         .auth-box input, .auth-box select {
-            width: 100%;
-            padding: 0.9rem 1rem;
-            margin-bottom: 1rem;
-            border: 2px solid var(--border);
-            border-radius: 10px;
-            background: var(--surface2);
-            color: var(--text);
-            font-size: 1rem;
-            transition: all 0.3s;
-            outline: none;
-            position: relative;
+            width: 100%; padding: 0.9rem 1rem; margin-bottom: 1rem;
+            border: 2px solid var(--border); border-radius: 10px;
+            background: var(--surface2); color: var(--text); font-size: 1rem;
+            transition: all 0.3s; outline: none; position: relative;
         }
         .auth-box input:focus, .auth-box select:focus {
-            border-color: var(--accent);
-            box-shadow: 0 0 0 4px rgba(233, 69, 96, 0.12);
+            border-color: var(--accent); box-shadow: 0 0 0 4px rgba(233,69,96,0.12);
         }
         .auth-box select { cursor: pointer; appearance: none; }
         .btn {
-            width: 100%;
-            padding: 0.9rem;
-            border: none;
-            border-radius: 10px;
-            font-size: 1rem;
-            font-weight: 700;
-            cursor: pointer;
-            transition: all 0.3s;
-            position: relative;
-            letter-spacing: 0.5px;
+            width: 100%; padding: 0.9rem; border: none; border-radius: 10px;
+            font-size: 1rem; font-weight: 700; cursor: pointer; transition: all 0.3s;
+            position: relative; letter-spacing: 0.5px;
         }
-        .btn-primary {
-            background: linear-gradient(135deg, #e94560, #c0392b);
-            color: #fff;
-        }
-        .btn-primary:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 25px rgba(233,69,96,0.4);
-        }
-        .btn-register {
-            background: transparent;
-            border: 2px solid var(--gold);
-            color: var(--gold);
-            margin-top: 0.5rem;
-        }
-        .btn-register:hover { background: rgba(240,192,64,0.1); }
+        .btn-primary { background: linear-gradient(135deg, #e94560, #c0392b); color: #fff; }
+        .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 8px 25px rgba(233,69,96,0.4); }
         .error-msg { color: var(--danger); font-size: 0.85rem; min-height: 22px; margin-top: 0.5rem; position: relative; }
         .toggle-link { color: var(--accent); cursor: pointer; font-size: 0.85rem; margin-top: 0.8rem; position: relative; }
         .toggle-link:hover { text-decoration: underline; }
 
-        /* ========== MAIN APP ========== */
         .app { display: none; flex-direction: column; min-height: 100vh; }
         .app.active { display: flex; }
-
-        /* HEADER */
         .header {
-            background: var(--surface);
-            border-bottom: 1px solid var(--border);
-            padding: 0.7rem 1.5rem;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            flex-wrap: wrap;
-            gap: 0.8rem;
-            position: sticky;
-            top: 0;
-            z-index: 100;
-            box-shadow: 0 2px 20px rgba(0,0,0,0.3);
+            background: var(--surface); border-bottom: 1px solid var(--border);
+            padding: 0.7rem 1.5rem; display: flex; align-items: center;
+            justify-content: space-between; flex-wrap: wrap; gap: 0.8rem;
+            position: sticky; top: 0; z-index: 100; box-shadow: 0 2px 20px rgba(0,0,0,0.3);
         }
         .header-left { display: flex; align-items: center; gap: 1rem; }
         .logo-text {
-            font-size: 1.3rem;
-            font-weight: 800;
+            font-size: 1.3rem; font-weight: 800;
             background: linear-gradient(135deg, #e94560, #f0c040);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
         }
         .role-badge {
-            padding: 0.3rem 0.8rem;
-            border-radius: 20px;
-            font-size: 0.7rem;
-            font-weight: 700;
-            letter-spacing: 1px;
-            text-transform: uppercase;
+            padding: 0.3rem 0.8rem; border-radius: 20px; font-size: 0.7rem;
+            font-weight: 700; letter-spacing: 1px; text-transform: uppercase;
         }
         .role-superadmin { background: rgba(240,192,64,0.2); color: var(--gold); border: 1px solid var(--gold); }
         .role-normal { background: rgba(46,204,113,0.2); color: var(--success); border: 1px solid var(--success); }
-        .viewer-badge {
-            background: var(--surface2);
-            border: 1px solid var(--border);
-            border-radius: 20px;
-            padding: 0.4rem 1rem;
-            font-size: 0.85rem;
-            display: flex;
-            align-items: center;
-            gap: 0.4rem;
-        }
-        .viewer-badge .dot { width: 8px; height: 8px; background: var(--success); border-radius: 50%; animation: pulse 1.5s infinite; }
-        @keyframes pulse { 0%,100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.4; transform: scale(1.8); } }
         .header-actions { display: flex; gap: 0.5rem; flex-wrap: wrap; align-items: center; }
         .btn-sm {
-            padding: 0.45rem 1rem;
-            border-radius: 20px;
-            font-size: 0.82rem;
-            border: 1px solid var(--border);
-            background: var(--surface2);
-            color: var(--text);
-            cursor: pointer;
-            transition: all 0.3s;
-            font-weight: 600;
-            white-space: nowrap;
+            padding: 0.45rem 1rem; border-radius: 20px; font-size: 0.82rem;
+            border: 1px solid var(--border); background: var(--surface2); color: var(--text);
+            cursor: pointer; transition: all 0.3s; font-weight: 600; white-space: nowrap;
         }
         .btn-sm:hover { background: var(--accent2); border-color: var(--accent); }
         .btn-sm.active-rec { background: var(--danger); border-color: var(--danger); animation: recPulse 1s infinite; color: #fff; }
         @keyframes recPulse { 0%,100% { box-shadow: 0 0 0 0 rgba(231,76,60,0.6); } 50% { box-shadow: 0 0 0 14px rgba(231,76,60,0); } }
         .btn-logout { background: transparent; border-color: var(--danger); color: var(--danger); }
         .btn-logout:hover { background: var(--danger); color: #fff; }
-        .btn-delete-all { background: transparent; border-color: var(--danger); color: var(--danger); font-size: 0.75rem; }
-        .btn-delete-all:hover { background: var(--danger); color: #fff; }
-        .btn-delete-comments { background: transparent; border-color: var(--warning); color: var(--warning); font-size: 0.75rem; }
-        .btn-delete-comments:hover { background: var(--warning); color: #000; }
         .user-info-top { font-size: 0.8rem; color: var(--text2); display: flex; align-items: center; gap: 0.3rem; }
+        .storage-info { font-size: 0.7rem; color: var(--text2); margin-left: 0.5rem; }
 
-        /* MAIN CONTENT */
         .main-content { display: flex; flex: 1; gap: 1rem; padding: 1rem; flex-wrap: wrap; }
         .video-panel {
-            flex: 1 1 65%;
-            min-width: 320px;
-            background: var(--surface);
-            border-radius: var(--radius);
-            border: 1px solid var(--border);
-            overflow: hidden;
-            display: flex;
-            flex-direction: column;
-            box-shadow: var(--shadow);
+            flex: 1 1 65%; min-width: 320px; background: var(--surface);
+            border-radius: var(--radius); border: 1px solid var(--border);
+            overflow: hidden; display: flex; flex-direction: column; box-shadow: var(--shadow);
         }
         .video-container {
-            position: relative;
-            background: #000;
-            aspect-ratio: 16/9;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            overflow: hidden;
-            transition: transform 0.4s ease, aspect-ratio 0.4s ease;
+            position: relative; background: #000; aspect-ratio: 16/9;
+            display: flex; align-items: center; justify-content: center;
+            overflow: hidden; transition: transform 0.4s ease, aspect-ratio 0.4s ease;
         }
         .video-container.rotated { transform: rotate(90deg); aspect-ratio: 9/16; }
         video { width: 100%; height: 100%; object-fit: contain; transition: transform 0.4s ease; }
         .video-placeholder { color: #555; font-size: 1.1rem; text-align: center; pointer-events: none; position: absolute; }
         .video-controls-bar {
-            display: flex;
-            gap: 0.5rem;
-            padding: 0.7rem 1rem;
-            background: var(--surface2);
-            flex-wrap: wrap;
-            align-items: center;
+            display: flex; gap: 0.5rem; padding: 0.7rem 1rem;
+            background: var(--surface2); flex-wrap: wrap; align-items: center;
         }
         .btn-icon {
-            background: var(--surface);
-            border: 1px solid var(--border);
-            color: var(--text);
-            padding: 0.45rem 0.8rem;
-            border-radius: 6px;
-            cursor: pointer;
-            transition: all 0.3s;
-            font-size: 0.85rem;
-            display: flex;
-            align-items: center;
-            gap: 0.3rem;
+            background: var(--surface); border: 1px solid var(--border); color: var(--text);
+            padding: 0.45rem 0.8rem; border-radius: 6px; cursor: pointer;
+            transition: all 0.3s; font-size: 0.85rem; display: flex; align-items: center; gap: 0.3rem;
         }
         .btn-icon:hover { background: var(--accent2); border-color: var(--accent); }
-        .btn-icon.recording { background: var(--danger); border-color: var(--danger); color: #fff; animation: recPulse 1s infinite; }
         .btn-icon:disabled { opacity: 0.4; cursor: not-allowed; pointer-events: none; }
         .rec-timer {
-            font-family: monospace;
-            font-size: 1rem;
-            font-weight: 700;
-            color: var(--danger);
-            margin-left: auto;
-            display: none;
-            align-items: center;
-            gap: 0.3rem;
+            font-family: monospace; font-size: 1rem; font-weight: 700;
+            color: var(--danger); margin-left: auto; display: none; align-items: center; gap: 0.3rem;
         }
         .rec-timer.visible { display: flex; }
         .rec-timer .rec-dot { width: 10px; height: 10px; background: var(--danger); border-radius: 50%; animation: pulse 0.8s infinite; }
 
-        /* SIDEBAR */
         .sidebar {
-            flex: 1 1 30%;
-            min-width: 300px;
-            background: var(--surface);
-            border-radius: var(--radius);
-            border: 1px solid var(--border);
-            padding: 1rem;
-            box-shadow: var(--shadow);
-            display: flex;
-            flex-direction: column;
-            max-height: calc(100vh - 130px);
+            flex: 1 1 30%; min-width: 300px; background: var(--surface);
+            border-radius: var(--radius); border: 1px solid var(--border);
+            padding: 1rem; box-shadow: var(--shadow); display: flex;
+            flex-direction: column; max-height: calc(100vh - 130px);
         }
         .sidebar h3 { font-size: 1.1rem; margin-bottom: 0.8rem; display: flex; align-items: center; gap: 0.5rem; justify-content: space-between; }
         .search-box {
-            width: 100%;
-            padding: 0.6rem 1rem;
-            border-radius: 20px;
-            border: 1px solid var(--border);
-            background: var(--surface2);
-            color: var(--text);
-            font-size: 0.9rem;
-            margin-bottom: 0.8rem;
-            outline: none;
+            width: 100%; padding: 0.6rem 1rem; border-radius: 20px;
+            border: 1px solid var(--border); background: var(--surface2);
+            color: var(--text); font-size: 0.9rem; margin-bottom: 0.8rem; outline: none;
         }
         .search-box:focus { border-color: var(--accent); }
         .recordings-list { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 0.5rem; padding-right: 0.3rem; }
         .recordings-list::-webkit-scrollbar { width: 5px; }
         .recordings-list::-webkit-scrollbar-thumb { background: var(--border); border-radius: 10px; }
         .recording-item {
-            background: var(--surface2);
-            border-radius: 10px;
-            padding: 0.8rem 0.9rem;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            gap: 0.5rem;
-            flex-wrap: wrap;
-            border: 1px solid transparent;
-            transition: all 0.3s;
+            background: var(--surface2); border-radius: 10px; padding: 0.8rem 0.9rem;
+            display: flex; justify-content: space-between; align-items: center;
+            gap: 0.5rem; flex-wrap: wrap; border: 1px solid transparent; transition: all 0.3s;
         }
         .recording-item:hover { border-color: var(--accent); }
         .recording-info { display: flex; flex-direction: column; gap: 0.2rem; flex: 1; min-width: 120px; }
@@ -321,52 +174,39 @@
         .recording-info .uploader { font-size: 0.65rem; color: var(--accent); }
         .rec-actions { display: flex; gap: 0.3rem; }
         .btn-play {
-            background: var(--accent);
-            color: #fff;
-            border: none;
-            padding: 0.4rem 0.7rem;
-            border-radius: 6px;
-            cursor: pointer;
-            font-size: 0.75rem;
-            transition: all 0.3s;
+            background: var(--accent); color: #fff; border: none;
+            padding: 0.4rem 0.7rem; border-radius: 6px; cursor: pointer;
+            font-size: 0.75rem; transition: all 0.3s;
         }
         .btn-play:hover { background: #d63851; }
         .btn-delete-rec {
-            background: transparent;
-            border: 1px solid var(--danger);
-            color: var(--danger);
-            padding: 0.35rem 0.6rem;
-            border-radius: 6px;
-            cursor: pointer;
-            font-size: 0.7rem;
-            transition: all 0.3s;
+            background: transparent; border: 1px solid var(--danger); color: var(--danger);
+            padding: 0.35rem 0.6rem; border-radius: 6px; cursor: pointer;
+            font-size: 0.7rem; transition: all 0.3s;
         }
         .btn-delete-rec:hover { background: var(--danger); color: #fff; }
         .no-recordings { text-align: center; color: var(--text2); padding: 2rem; font-size: 0.9rem; }
+        .upload-progress {
+            width: 100%; height: 4px; background: var(--border); border-radius: 2px;
+            margin-top: 0.3rem; overflow: hidden; display: none;
+        }
+        .upload-progress.visible { display: block; }
+        .upload-progress .bar {
+            height: 100%; background: var(--success); transition: width 0.3s;
+            border-radius: 2px; width: 0%;
+        }
 
-        /* COMMENTS SECTION */
         .comments-section {
-            margin-top: 0.8rem;
-            border-top: 1px solid var(--border);
-            padding-top: 0.8rem;
+            margin-top: 0.8rem; border-top: 1px solid var(--border); padding-top: 0.8rem;
         }
         .comments-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 0.5rem;
+            display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;
         }
         .comments-section h4 { font-size: 0.9rem; display: flex; align-items: center; gap: 0.3rem; margin: 0; }
         .btn-clear-comments {
-            background: transparent;
-            border: 1px solid var(--warning);
-            color: var(--warning);
-            padding: 0.25rem 0.6rem;
-            border-radius: 15px;
-            cursor: pointer;
-            font-size: 0.65rem;
-            transition: all 0.3s;
-            display: none;
+            background: transparent; border: 1px solid var(--warning); color: var(--warning);
+            padding: 0.25rem 0.6rem; border-radius: 15px; cursor: pointer;
+            font-size: 0.65rem; transition: all 0.3s; display: none;
         }
         .btn-clear-comments.visible { display: inline-block; }
         .btn-clear-comments:hover { background: var(--warning); color: #000; }
@@ -374,112 +214,75 @@
         .comments-list::-webkit-scrollbar { width: 4px; }
         .comments-list::-webkit-scrollbar-thumb { background: var(--border); border-radius: 8px; }
         .comment-item {
-            background: var(--surface2);
-            border-radius: 8px;
-            padding: 0.4rem 0.7rem;
-            font-size: 0.78rem;
-            display: flex;
-            gap: 0.5rem;
-            align-items: flex-start;
-            position: relative;
-            transition: all 0.3s;
+            background: var(--surface2); border-radius: 8px; padding: 0.4rem 0.7rem;
+            font-size: 0.78rem; display: flex; gap: 0.5rem; align-items: flex-start;
+            position: relative; transition: all 0.3s;
         }
         .comment-item:hover { background: #1e1e45; }
         .comment-item .comment-user { font-weight: 700; color: var(--gold); white-space: nowrap; }
         .comment-item .comment-text { color: var(--text2); word-break: break-word; flex: 1; }
         .comment-item .comment-time { font-size: 0.6rem; color: #555; margin-left: auto; white-space: nowrap; }
         .comment-delete-btn {
-            background: transparent;
-            border: none;
-            color: var(--danger);
-            cursor: pointer;
-            font-size: 0.7rem;
-            padding: 0.1rem 0.3rem;
-            border-radius: 50%;
-            transition: all 0.2s;
-            opacity: 0;
-            line-height: 1;
+            background: transparent; border: none; color: var(--danger);
+            cursor: pointer; font-size: 0.7rem; padding: 0.1rem 0.3rem;
+            border-radius: 50%; transition: all 0.2s; opacity: 0; line-height: 1;
         }
         .comment-item:hover .comment-delete-btn { opacity: 1; }
         .comment-delete-btn:hover { background: rgba(231,76,60,0.2); transform: scale(1.2); }
         .comment-input-row { display: flex; gap: 0.4rem; }
         .comment-input-row input {
-            flex: 1;
-            padding: 0.5rem 0.7rem;
-            border-radius: 20px;
-            border: 1px solid var(--border);
-            background: var(--surface2);
-            color: var(--text);
-            font-size: 0.8rem;
-            outline: none;
+            flex: 1; padding: 0.5rem 0.7rem; border-radius: 20px;
+            border: 1px solid var(--border); background: var(--surface2);
+            color: var(--text); font-size: 0.8rem; outline: none;
         }
         .comment-input-row input:focus { border-color: var(--accent); }
         .comment-input-row button {
-            background: var(--accent);
-            color: #fff;
-            border: none;
-            padding: 0.5rem 1rem;
-            border-radius: 20px;
-            cursor: pointer;
-            font-size: 0.8rem;
-            font-weight: 600;
-            transition: all 0.3s;
+            background: var(--accent); color: #fff; border: none;
+            padding: 0.5rem 1rem; border-radius: 20px; cursor: pointer;
+            font-size: 0.8rem; font-weight: 600; transition: all 0.3s;
         }
         .comment-input-row button:hover { background: #d63851; }
 
-        /* MODAL */
         .modal-overlay {
-            position: fixed;
-            inset: 0;
-            background: rgba(0,0,0,0.9);
-            display: none;
-            align-items: center;
-            justify-content: center;
-            z-index: 999;
+            position: fixed; inset: 0; background: rgba(0,0,0,0.9);
+            display: none; align-items: center; justify-content: center; z-index: 999;
         }
         .modal-overlay.active { display: flex; }
         .modal {
-            background: var(--surface);
-            border-radius: var(--radius);
-            padding: 1rem;
-            width: 90%;
-            max-width: 850px;
-            border: 1px solid var(--border);
+            background: var(--surface); border-radius: var(--radius); padding: 1rem;
+            width: 90%; max-width: 850px; border: 1px solid var(--border);
         }
         .modal video { width: 100%; max-height: 75vh; border-radius: 10px; }
         .modal-close {
-            float: right;
-            background: var(--danger);
-            border: none;
-            color: #fff;
-            width: 32px;
-            height: 32px;
-            border-radius: 50%;
-            cursor: pointer;
-            font-size: 1.1rem;
-            margin-bottom: 0.5rem;
-            transition: all 0.3s;
+            float: right; background: var(--danger); border: none; color: #fff;
+            width: 32px; height: 32px; border-radius: 50%; cursor: pointer;
+            font-size: 1.1rem; margin-bottom: 0.5rem; transition: all 0.3s;
         }
         .modal-close:hover { background: #c0392b; transform: scale(1.1); }
 
-        /* TOAST */
         .toast {
-            position: fixed;
-            bottom: 20px;
-            right: 20px;
-            background: var(--surface);
-            border: 1px solid var(--border);
-            padding: 0.8rem 1.2rem;
-            border-radius: 10px;
-            z-index: 9999;
-            animation: slideIn 0.4s ease;
-            font-size: 0.85rem;
-            box-shadow: var(--shadow);
-            max-width: 350px;
+            position: fixed; bottom: 20px; right: 20px; background: var(--surface);
+            border: 1px solid var(--border); padding: 0.8rem 1.2rem; border-radius: 10px;
+            z-index: 9999; animation: slideIn 0.4s ease; font-size: 0.85rem;
+            box-shadow: var(--shadow); max-width: 350px;
         }
         @keyframes slideIn { from { transform: translateX(120%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
 
-        /* RESPONSIVE */
+        .confirm-overlay {
+            position: fixed; inset: 0; background: rgba(0,0,0,0.85);
+            display: none; align-items: center; justify-content: center; z-index: 9999;
+        }
+        .confirm-overlay.active { display: flex; }
+        .confirm-box {
+            background: var(--surface); border: 1px solid var(--border);
+            border-radius: var(--radius); padding: 2rem; text-align: center;
+            max-width: 400px; width: 90%;
+        }
+        .confirm-box p { margin-bottom: 1.5rem; font-size: 1rem; }
+        .confirm-box .btn-row { display: flex; gap: 0.8rem; justify-content: center; }
+        .confirm-box .btn-yes { background: var(--danger); color: #fff; border: none; padding: 0.6rem 1.5rem; border-radius: 8px; cursor: pointer; font-weight: 600; }
+        .confirm-box .btn-no { background: var(--surface2); color: var(--text); border: 1px solid var(--border); padding: 0.6rem 1.5rem; border-radius: 8px; cursor: pointer; font-weight: 600; }
+
         @media (max-width: 768px) {
             .main-content { flex-direction: column; padding: 0.5rem; }
             .video-panel, .sidebar { flex: 1 1 100%; min-width: 100%; }
@@ -489,33 +292,6 @@
             .btn-sm { padding: 0.35rem 0.6rem; font-size: 0.7rem; }
             .auth-box { padding: 2rem 1.5rem; }
         }
-
-        /* Confirmation Dialog */
-        .confirm-overlay {
-            position: fixed;
-            inset: 0;
-            background: rgba(0,0,0,0.85);
-            display: none;
-            align-items: center;
-            justify-content: center;
-            z-index: 9999;
-        }
-        .confirm-overlay.active { display: flex; }
-        .confirm-box {
-            background: var(--surface);
-            border: 1px solid var(--border);
-            border-radius: var(--radius);
-            padding: 2rem;
-            text-align: center;
-            max-width: 400px;
-            width: 90%;
-        }
-        .confirm-box p { margin-bottom: 1.5rem; font-size: 1rem; }
-        .confirm-box .btn-row { display: flex; gap: 0.8rem; justify-content: center; }
-        .confirm-box .btn-yes { background: var(--danger); color: #fff; border: none; padding: 0.6rem 1.5rem; border-radius: 8px; cursor: pointer; font-weight: 600; }
-        .confirm-box .btn-no { background: var(--surface2); color: var(--text); border: 1px solid var(--border); padding: 0.6rem 1.5rem; border-radius: 8px; cursor: pointer; font-weight: 600; }
-        .confirm-box .btn-yes:hover { background: #c0392b; }
-        .confirm-box .btn-no:hover { background: var(--border); }
     </style>
 </head>
 <body>
@@ -524,7 +300,7 @@
     <div class="auth-overlay" id="authOverlay">
         <div class="auth-box">
             <div class="logo">🏏</div>
-            <h2 id="authTitle">Welcome Team Morning Vibes</h2>
+            <h2 id="authTitle">Welcome Back!</h2>
             <p class="subtitle" id="authSubtitle">Login to your account</p>
             <input type="text" id="usernameInput" placeholder="Username" autocomplete="off">
             <input type="password" id="passwordInput" placeholder="Password">
@@ -536,10 +312,6 @@
             <button class="btn btn-primary" id="authBtn">🔐 Login</button>
             <p class="error-msg" id="authError"></p>
             <p class="toggle-link" id="toggleAuthMode">Don't have an account? Register</p>
-            <!-- <p style="color:var(--text2); font-size:0.65rem; margin-top:1rem;">
-                Default: admin / admin123 (Super Admin)<br>
-                Or register new normal user
-            </p> -->
         </div>
     </div>
 
@@ -547,18 +319,19 @@
     <div class="app" id="app">
         <header class="header">
             <div class="header-left">
-                <span class="logo-text">🏏 Morning MatchStream </span>
+                <span class="logo-text">🏏 MatchStream Pro</span>
                 <span class="role-badge" id="roleBadge">USER</span>
+                <span class="storage-info" id="storageInfo">💾 Storage: --</span>
             </div>
             <div class="header-actions">
-                <span class="user-info-top" id="userInfoTop">👤 Player </span>
+                <span class="user-info-top" id="userInfoTop">👤 User</span>
                 <button class="btn-sm" id="btnRotate" title="Rotate">🔄</button>
                 <button class="btn-sm" id="btnFullscreen" title="Fullscreen">⛶</button>
                 <button class="btn-sm" id="btnStartStream" title="Start Stream">▶️ Stream</button>
                 <button class="btn-sm" id="btnStopStream" title="Stop Stream" disabled>⏹️ Stop</button>
                 <button class="btn-sm" id="btnRecord" title="Record" disabled>🔴 Rec</button>
-                <button class="btn-sm btn-delete-all" id="btnDeleteAll" title="Delete All Recordings" style="display:none;">🗑 All Rec</button>
-                <button class="btn-sm btn-delete-comments" id="btnDeleteAllComments" title="Delete All Comments" style="display:none;">💬 Clear</button>
+                <button class="btn-sm" id="btnDeleteAll" title="Delete All Recordings" style="display:none;">🗑 All Rec</button>
+                <button class="btn-sm" id="btnDeleteAllComments" title="Delete All Comments" style="display:none;">💬 Clear</button>
                 <button class="btn-sm btn-logout" id="btnLogout">🚪 Logout</button>
             </div>
         </header>
@@ -573,6 +346,9 @@
                 </div>
                 <div class="video-controls-bar">
                     <button class="btn-icon" id="btnMic" title="Mic">🎤 Mic On</button>
+                    <div class="upload-progress" id="uploadProgress">
+                        <div class="bar" id="uploadBar"></div>
+                    </div>
                     <div class="rec-timer" id="recTimer">
                         <span class="rec-dot"></span> <span id="timerText">00:00</span>
                     </div>
@@ -588,7 +364,6 @@
                 <div class="recordings-list" id="recordingsList">
                     <div class="no-recordings">No recordings yet.</div>
                 </div>
-                <!-- COMMENTS -->
                 <div class="comments-section">
                     <div class="comments-header">
                         <h4>💬 Live Comments <span style="font-size:0.65rem;color:var(--text2);" id="commentCount">(0)</span></h4>
@@ -625,652 +400,735 @@
         </div>
     </div>
 
+    <!-- Firebase SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js">
+    </script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-storage-compat.js">
+    </script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js">
+    </script>
+
     <script>
-        (function() {
-            // ============ CONFIG ============
-            const SUPER_ADMIN_CODE = 'cricket2024';
-            const DEFAULT_SUPERADMIN = { username: 'admin', password: 'admin123', role: 'superadmin' };
-            const STORAGE_KEY_RECORDINGS = 'matchstream_recordings_v3';
-            const STORAGE_KEY_USERS = 'matchstream_users_v2';
-            const STORAGE_KEY_COMMENTS = 'matchstream_comments_v2';
-            const EXPIRY_DAYS = 7; // For both recordings AND comments
+        // ==================== FIREBASE CONFIG ====================
+        // 🔴 IMPORTANT: Replace with your own Firebase config from console.firebase.google.com
+        const firebaseConfig = {
+            apiKey: "AIzaSyD-PLACEHOLDER-KEY",
+            authDomain: "your-project.firebaseapp.com",
+            projectId: "your-project-id",
+            storageBucket: "your-project.appspot.com",
+            messagingSenderId: "123456789",
+            appId: "1:123456789:web:abc123"
+        };
 
-            // ============ DOM ============
-            const authOverlay = document.getElementById('authOverlay');
-            const usernameInput = document.getElementById('usernameInput');
-            const passwordInput = document.getElementById('passwordInput');
-            const roleSelect = document.getElementById('roleSelect');
-            const adminCodeInput = document.getElementById('adminCodeInput');
-            const authBtn = document.getElementById('authBtn');
-            const authError = document.getElementById('authError');
-            const authTitle = document.getElementById('authTitle');
-            const authSubtitle = document.getElementById('authSubtitle');
-            const toggleAuthMode = document.getElementById('toggleAuthMode');
-            const app = document.getElementById('app');
-            const livePreview = document.getElementById('livePreview');
-            const videoPlaceholder = document.getElementById('videoPlaceholder');
-            const videoContainer = document.getElementById('videoContainer');
-            const btnRotate = document.getElementById('btnRotate');
-            const btnFullscreen = document.getElementById('btnFullscreen');
-            const btnStartStream = document.getElementById('btnStartStream');
-            const btnStopStream = document.getElementById('btnStopStream');
-            const btnRecord = document.getElementById('btnRecord');
-            const btnMic = document.getElementById('btnMic');
-            const btnDeleteAll = document.getElementById('btnDeleteAll');
-            const btnDeleteAllComments = document.getElementById('btnDeleteAllComments');
-            const recTimer = document.getElementById('recTimer');
-            const timerText = document.getElementById('timerText');
-            const recordingsList = document.getElementById('recordingsList');
-            const recCount = document.getElementById('recCount');
-            const searchInput = document.getElementById('searchInput');
-            const playbackModal = document.getElementById('playbackModal');
-            const playbackVideo = document.getElementById('playbackVideo');
-            const closeModal = document.getElementById('closeModal');
-            const btnLogout = document.getElementById('btnLogout');
-            const roleBadge = document.getElementById('roleBadge');
-            const userInfoTop = document.getElementById('userInfoTop');
-            const commentsList = document.getElementById('commentsList');
-            const commentInput = document.getElementById('commentInput');
-            const sendComment = document.getElementById('sendComment');
-            const confirmOverlay = document.getElementById('confirmOverlay');
-            const confirmMsg = document.getElementById('confirmMsg');
-            const confirmYes = document.getElementById('confirmYes');
-            const confirmNo = document.getElementById('confirmNo');
-            const btnClearComments = document.getElementById('btnClearComments');
-            const commentCount = document.getElementById('commentCount');
+        // Initialize Firebase
+        let firebaseApp, storage, db;
 
-            // ============ STATE ============
-            let mediaStream = null;
-            let mediaRecorder = null;
-            let recordedChunks = [];
-            let isRecording = false;
-            let recordingStartTime = null;
-            let timerInterval = null;
-            let isMicOn = true;
-            let currentRotation = 0;
-            let currentUser = null;
-            let isRegisterMode = false;
-            let pendingConfirmAction = null;
-            let isLoggedIn = false;
-
-            // ============ USER MANAGEMENT ============
-            function getUsers() {
-                try {
-                    let users = JSON.parse(localStorage.getItem(STORAGE_KEY_USERS)) || [];
-                    const hasAdmin = users.some(u => u.username === DEFAULT_SUPERADMIN.username);
-                    if (!hasAdmin) {
-                        users.push({ ...DEFAULT_SUPERADMIN, createdAt: Date.now() });
-                        localStorage.setItem(STORAGE_KEY_USERS, JSON.stringify(users));
-                    }
-                    return users;
-                } catch (e) { return [DEFAULT_SUPERADMIN]; }
+        function initFirebase() {
+            try {
+                firebaseApp = firebase.initializeApp(firebaseConfig);
+                storage = firebase.storage();
+                db = firebase.firestore();
+                console.log('✅ Firebase connected');
+                updateStorageInfo();
+                loadRecordingsFromFirestore();
+            } catch (e) {
+                console.warn('⚠️ Firebase not configured. Using IndexedDB fallback.');
+                toast('⚠️ Firebase not configured. Using local storage fallback.');
+                initIndexedDB();
             }
+        }
 
-            function saveUsers(users) {
-                localStorage.setItem(STORAGE_KEY_USERS, JSON.stringify(users));
-            }
+        // ==================== INDEXEDDB FALLBACK ====================
+        let dbFallback = null;
 
-            function registerUser(username, password, role) {
-                const users = getUsers();
-                if (users.some(u => u.username.toLowerCase() === username.toLowerCase())) {
-                    return { success: false, message: 'Username already exists!' };
+        function initIndexedDB() {
+            const request = indexedDB.open('MatchStreamDB', 2);
+            request.onupgradeneeded = (e) => {
+                const db = e.target.result;
+                if (!db.objectStoreNames.contains('recordings')) {
+                    db.createObjectStore('recordings', { keyPath: 'id' });
                 }
-                if (username.length < 3) return { success: false, message: 'Username must be 3+ characters.' };
-                if (password.length < 6) return { success: false, message: 'Password must be 6+ characters.' };
-                if (role === 'superadmin' && adminCodeInput.value.trim() !== SUPER_ADMIN_CODE) {
-                    return { success: false, message: 'Invalid Admin Secret Code!' };
+                if (!db.objectStoreNames.contains('metadata')) {
+                    db.createObjectStore('metadata', { keyPath: 'id' });
                 }
-                users.push({ username, password, role, createdAt: Date.now() });
-                saveUsers(users);
-                return { success: true, message: 'Registration successful! Please login.' };
-            }
-
-            function authenticateUser(username, password) {
-                const users = getUsers();
-                return users.find(u =>
-                    u.username.toLowerCase() === username.toLowerCase() && u.password === password
-                ) || null;
-            }
-
-            // ============ RECORDINGS MANAGEMENT ============
-            function getRecordings() {
-                try { return JSON.parse(localStorage.getItem(STORAGE_KEY_RECORDINGS)) || []; } catch (e) { return []; }
-            }
-
-            function saveRecordings(recs) {
-                localStorage.setItem(STORAGE_KEY_RECORDINGS, JSON.stringify(recs));
-            }
-
-            function cleanExpiredRecordings() {
-                let recs = getRecordings();
-                const now = Date.now();
-                const expiryMs = EXPIRY_DAYS * 24 * 60 * 60 * 1000;
-                const expired = recs.filter(r => (now - r.timestamp) >= expiryMs);
-                expired.forEach(r => { if (r.blobUrl) URL.revokeObjectURL(r.blobUrl); });
-                const filtered = recs.filter(r => (now - r.timestamp) < expiryMs);
-                if (filtered.length !== recs.length) saveRecordings(filtered);
-                return filtered;
-            }
-
-            function addRecording(blob) {
-                if (!currentUser) return;
-                const recs = cleanExpiredRecordings();
-                const blobUrl = URL.createObjectURL(blob);
-                const newRec = {
-                    id: Date.now().toString(36) + Math.random().toString(36).substr(2, 5),
-                    name: `Match_${new Date().toLocaleDateString('en-IN').replace(/\//g,'-')}_${new Date().toLocaleTimeString('en-IN', {hour:'2-digit',minute:'2-digit'})}`,
-                    timestamp: Date.now(),
-                    blobUrl: blobUrl,
-                    size: blob.size,
-                    duration: recordingStartTime ? Math.round((Date.now() - recordingStartTime) / 1000) : 0,
-                    uploadedBy: currentUser.username,
-                    uploadedByRole: currentUser.role
-                };
-                recs.unshift(newRec);
-                saveRecordings(recs);
-                renderRecordings();
-                toast('✅ Recording saved! Auto-delete after 7 days.');
-            }
-
-            function deleteRecording(id) {
-                let recs = getRecordings();
-                const rec = recs.find(r => r.id === id);
-                if (!rec) return;
-                if (currentUser.role !== 'superadmin' && rec.uploadedBy !== currentUser.username) {
-                    toast('❌ Only Super Admin can delete other users recordings!');
-                    return;
+                if (!db.objectStoreNames.contains('comments')) {
+                    db.createObjectStore('comments', { keyPath: 'id' });
                 }
-                if (rec.blobUrl) URL.revokeObjectURL(rec.blobUrl);
-                recs = recs.filter(r => r.id !== id);
-                saveRecordings(recs);
-                renderRecordings();
-                toast('🗑 Recording deleted.');
-            }
+            };
+            request.onsuccess = (e) => {
+                dbFallback = e.target.result;
+                console.log('✅ IndexedDB ready (50MB+ storage)');
+                loadRecordingsFromIndexedDB();
+                loadCommentsFromIndexedDB();
+            };
+            request.onerror = () => {
+                console.error('❌ IndexedDB failed, using localStorage');
+                loadRecordingsFromLocalStorage();
+            };
+        }
 
-            function deleteAllRecordings() {
-                if (currentUser.role !== 'superadmin') {
-                    toast('❌ Only Super Admin can delete all recordings!');
-                    return;
-                }
-                const recs = getRecordings();
-                recs.forEach(r => { if (r.blobUrl) URL.revokeObjectURL(r.blobUrl); });
-                saveRecordings([]);
-                renderRecordings();
-                toast('🗑 All recordings deleted by Super Admin.');
-            }
-
-            // ============ COMMENTS MANAGEMENT (WITH 7-DAY AUTO DELETE + SUPER ADMIN DELETE) ============
-            function getComments() {
-                try { return JSON.parse(localStorage.getItem(STORAGE_KEY_COMMENTS)) || []; } catch (e) { return []; }
-            }
-
-            function saveComments(comments) {
-                if (comments.length > 100) comments = comments.slice(-100);
-                localStorage.setItem(STORAGE_KEY_COMMENTS, JSON.stringify(comments));
-            }
-
-            function cleanExpiredComments() {
-                let comments = getComments();
-                const now = Date.now();
-                const expiryMs = EXPIRY_DAYS * 24 * 60 * 60 * 1000;
-                const filtered = comments.filter(c => (now - c.timestamp) < expiryMs);
-                if (filtered.length !== comments.length) {
-                    saveComments(filtered);
-                }
-                return filtered;
-            }
-
-            function addComment(text) {
-                if (!currentUser) return;
-                let comments = cleanExpiredComments();
-                comments.push({
-                    id: Date.now().toString(36) + Math.random().toString(36).substr(2, 5),
-                    username: currentUser.username,
-                    role: currentUser.role,
-                    text: text.trim(),
-                    timestamp: Date.now()
+        // ==================== STORAGE FUNCTIONS ====================
+        function updateStorageInfo() {
+            if (navigator.storage && navigator.storage.estimate) {
+                navigator.storage.estimate().then(estimate => {
+                    const used = (estimate.usage / 1024 / 1024).toFixed(1);
+                    const quota = (estimate.quota / 1024 / 1024).toFixed(0);
+                    document.getElementById('storageInfo').textContent =
+                        `💾 ${used}MB / ${quota}MB`;
                 });
-                saveComments(comments);
-                renderComments();
-                toast('💬 Comment added!');
             }
+        }
 
-            function deleteComment(commentId) {
-                if (currentUser.role !== 'superadmin') {
-                    toast('❌ Only Super Admin can delete comments!');
-                    return;
-                }
-                let comments = getComments();
-                comments = comments.filter(c => c.id !== commentId);
-                saveComments(comments);
-                renderComments();
-                toast('🗑 Comment deleted by Super Admin.');
-            }
+        // ==================== RECORDING FUNCTIONS ====================
+        async function uploadRecordingToFirebase(blob, metadata) {
+            const uploadProgress = document.getElementById('uploadProgress');
+            const uploadBar = document.getElementById('uploadBar');
 
-            function deleteAllComments() {
-                if (currentUser.role !== 'superadmin') {
-                    toast('❌ Only Super Admin can clear all comments!');
-                    return;
-                }
-                saveComments([]);
-                renderComments();
-                toast('🗑 All comments cleared by Super Admin.');
-            }
+            uploadProgress.classList.add('visible');
+            uploadBar.style.width = '0%';
 
-            function renderComments() {
-                const comments = cleanExpiredComments();
-                const isSuperAdmin = currentUser && currentUser.role === 'superadmin';
-                commentCount.textContent = `(${comments.length})`;
+            const filename = `recordings/${metadata.id}.webm`;
+            const storageRef = storage.ref(filename);
+            const uploadTask = storageRef.put(blob);
 
-                // Show/hide clear button
-                if (isSuperAdmin && comments.length > 0) {
-                    btnClearComments.classList.add('visible');
-                } else {
-                    btnClearComments.classList.remove('visible');
-                }
-
-                if (comments.length === 0) {
-                    commentsList.innerHTML = '<div style="color:var(--text2);font-size:0.75rem;">No comments yet. Be the first!</div>';
-                } else {
-                    commentsList.innerHTML = comments.slice(-30).map(c => `
-                        <div class="comment-item">
-                            <span class="comment-user">${c.role === 'superadmin' ? '👑' : '👤'} ${escapeHtml(c.username)}</span>
-                            <span class="comment-text">${escapeHtml(c.text)}</span>
-                            <span class="comment-time">${timeAgo(c.timestamp)}</span>
-                            ${isSuperAdmin ? `<button class="comment-delete-btn" onclick="window._deleteComment('${c.id}')" title="Delete comment">✕</button>` : ''}
-                        </div>
-                    `).join('');
-                    commentsList.scrollTop = commentsList.scrollHeight;
-                }
-            }
-
-            // Expose to global scope
-            window._deleteComment = function(commentId) {
-                confirmMsg.textContent = 'Delete this comment?';
-                pendingConfirmAction = () => deleteComment(commentId);
-                confirmOverlay.classList.add('active');
-            };
-
-            function escapeHtml(str) {
-                const div = document.createElement('div');
-                div.textContent = str;
-                return div.innerHTML;
-            }
-
-            function timeAgo(ts) {
-                const seconds = Math.floor((Date.now() - ts) / 1000);
-                if (seconds < 60) return 'just now';
-                if (seconds < 3600) return `${Math.floor(seconds/60)}m ago`;
-                if (seconds < 86400) return `${Math.floor(seconds/3600)}h ago`;
-                return `${Math.floor(seconds/86400)}d ago`;
-            }
-
-            // ============ RENDER RECORDINGS ============
-            function formatDuration(seconds) {
-                const m = Math.floor(seconds / 60);
-                const s = seconds % 60;
-                return `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
-            }
-
-            function formatDate(ts) {
-                return new Date(ts).toLocaleString('en-IN', { day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' });
-            }
-
-            function getExpiryDate(ts) {
-                return new Date(ts + EXPIRY_DAYS * 24 * 60 * 60 * 1000).toLocaleDateString('en-IN', { day:'2-digit', month:'short' });
-            }
-
-            function renderRecordings(filter = '') {
-                const recs = cleanExpiredRecordings();
-                const filtered = filter ? recs.filter(r => r.name.toLowerCase().includes(filter.toLowerCase())) : recs;
-                recCount.textContent = `${filtered.length} videos`;
-
-                if (filtered.length === 0) {
-                    recordingsList.innerHTML = '<div class="no-recordings">📭 No recordings found.</div>';
-                } else {
-                    recordingsList.innerHTML = filtered.map(r => {
-                        const canDelete = currentUser.role === 'superadmin' || r.uploadedBy === currentUser.username;
-                        return `
-                        <div class="recording-item">
-                            <div class="recording-info">
-                                <span class="rec-name">🎬 ${escapeHtml(r.name)}</span>
-                                <span class="rec-meta">📅 ${formatDate(r.timestamp)} • ⏱ ${formatDuration(r.duration||0)} • 📦 ${(r.size/1024/1024).toFixed(1)} MB</span>
-                                <span class="expiry">🗑 Auto-delete: ${getExpiryDate(r.timestamp)}</span>
-                                <span class="uploader">📹 By: ${escapeHtml(r.uploadedBy || 'Unknown')} ${r.uploadedByRole === 'superadmin' ? '👑' : ''}</span>
-                            </div>
-                            <div class="rec-actions">
-                                <button class="btn-play" onclick="window._playRecording('${r.id}')">▶ Play</button>
-                                <!--Delete button by user side -->
-                             <!--   ${canDelete ? `<button class="btn-delete-rec" onclick="window._deleteRecording('${r.id}')">🗑</button>` : ''} -->
-                            </div>
-                        </div>`;
-                    }).join('');
-                }
-            }
-
-            window._playRecording = function(id) {
-                const recs = getRecordings();
-                const rec = recs.find(r => r.id === id);
-                if (rec && rec.blobUrl) {
-                    playbackVideo.src = rec.blobUrl;
-                    playbackModal.classList.add('active');
-                } else { toast('❌ Recording not available.'); }
-            };
-
-            window._deleteRecording = function(id) {
-                confirmMsg.textContent = 'Delete this recording? This cannot be undone.';
-                pendingConfirmAction = () => deleteRecording(id);
-                confirmOverlay.classList.add('active');
-            };
-
-            // ============ CAMERA ============
-            async function startCamera() {
-                try {
-                    mediaStream = await navigator.mediaDevices.getUserMedia({
-                        video: { width: { ideal: 1280 }, height: { ideal: 720 }, facingMode: 'environment' },
-                        audio: true
-                    });
-                    livePreview.srcObject = mediaStream;
-                    livePreview.style.display = 'block';
-                    videoPlaceholder.style.display = 'none';
-                    btnStartStream.disabled = true;
-                    btnStopStream.disabled = false;
-                    btnRecord.disabled = false;
-                    toast('📹 Camera & Mic active');
-                } catch (err) {
-                    toast('❌ Camera/Mic access denied!');
-                }
-            }
-
-            function stopCamera() {
-                if (mediaStream) { mediaStream.getTracks().forEach(t => t.stop());
-                    mediaStream = null; }
-                livePreview.srcObject = null;
-                livePreview.style.display = 'none';
-                videoPlaceholder.style.display = 'flex';
-                btnStartStream.disabled = false;
-                btnStopStream.disabled = true;
-                btnRecord.disabled = true;
-                stopRecording(true);
-            }
-
-            // ============ RECORDING ============
-            function startRecording() {
-                if (!mediaStream) { toast('⚠️ Start stream first!'); return; }
-                if (isRecording) return;
-                recordedChunks = [];
-                try { mediaRecorder = new MediaRecorder(mediaStream, { mimeType: 'video/webm;codecs=vp9,opus' }); } catch (e) {
-                    try { mediaRecorder = new MediaRecorder(mediaStream, { mimeType: 'video/webm' }); } catch (e2) { toast('❌ Recording not supported.'); return; }
-                }
-                mediaRecorder.ondataavailable = (e) => { if (e.data.size > 0) recordedChunks.push(e.data); };
-                mediaRecorder.onstop = () => {
-                    if (recordedChunks.length > 0 && !isRecording) {
-                        addRecording(new Blob(recordedChunks, { type: 'video/webm' }));
+            return new Promise((resolve, reject) => {
+                uploadTask.on('state_changed',
+                    (snapshot) => {
+                        const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+                        uploadBar.style.width = progress + '%';
+                    },
+                    (error) => {
+                        uploadProgress.classList.remove('visible');
+                        reject(error);
+                    },
+                    async () => {
+                        const downloadURL = await uploadTask.snapshot.ref.getDownloadURL();
+                        await db.collection('recordings').doc(metadata.id).set({
+                            ...metadata,
+                            downloadURL: downloadURL,
+                            storagePath: filename
+                        });
+                        uploadProgress.classList.remove('visible');
+                        resolve(downloadURL);
                     }
-                    recordedChunks = [];
-                };
-                mediaRecorder.start(1000);
-                isRecording = true;
-                recordingStartTime = Date.now();
-                btnRecord.textContent = '⏹️ Stop Rec';
-                btnRecord.classList.add('recording');
-                recTimer.classList.add('visible');
-                startTimer();
-                toast('🔴 Recording started');
-            }
+                );
+            });
+        }
 
-            function stopRecording(silent = false) {
-                if (!isRecording) return;
-                if (mediaRecorder && mediaRecorder.state === 'recording') mediaRecorder.stop();
-                isRecording = false;
-                recordingStartTime = null;
-                btnRecord.textContent = '🔴 Rec';
-                btnRecord.classList.remove('recording');
-                recTimer.classList.remove('visible');
-                stopTimer();
-                if (!silent) toast('⏹️ Recording saved.');
-            }
+        async function saveToIndexedDB(blob, metadata) {
+            return new Promise((resolve, reject) => {
+                if (!dbFallback) { reject('DB not ready'); return; }
+                const tx = dbFallback.transaction(['recordings', 'metadata'], 'readwrite');
+                const recStore = tx.objectStore('recordings');
+                const metaStore = tx.objectStore('metadata');
 
-            function startTimer() {
-                stopTimer();
-                timerInterval = setInterval(() => {
-                    if (!recordingStartTime) return;
-                    timerText.textContent = formatDuration(Math.floor((Date.now() - recordingStartTime) / 1000));
-                }, 1000);
-            }
+                recStore.put({ id: metadata.id, blob: blob });
+                metaStore.put(metadata);
 
-            function stopTimer() { if (timerInterval) clearInterval(timerInterval);
-                timerInterval = null;
-                timerText.textContent = '00:00'; }
+                tx.oncomplete = () => resolve();
+                tx.onerror = () => reject(tx.error);
+            });
+        }
 
-            function toggleRotate() {
-                currentRotation = (currentRotation + 90) % 360;
-                videoContainer.style.transform = `rotate(${currentRotation}deg)`;
-                videoContainer.style.aspectRatio = (currentRotation === 90 || currentRotation === 270) ? '9/16' : '16/9';
-            }
+        function saveRecording(blob) {
+            if (!currentUser) return;
+            const metadata = {
+                id: Date.now().toString(36) + Math.random().toString(36).substr(2, 8),
+                name: `Match_${new Date().toLocaleDateString('en-IN').replace(/\//g,'-')}_${new Date().toLocaleTimeString('en-IN', {hour:'2-digit',minute:'2-digit'})}`,
+                timestamp: Date.now(),
+                size: blob.size,
+                duration: recordingStartTime ? Math.round((Date.now() - recordingStartTime) / 1000) : 0,
+                uploadedBy: currentUser.username,
+                uploadedByRole: currentUser.role,
+                blob: null // Will be stored separately
+            };
 
-            function toggleFullscreen() {
-                if (!document.fullscreenElement) videoContainer.requestFullscreen().catch(() => toast('⚠️ Fullscreen blocked.'));
-                else document.exitFullscreen();
-            }
+            const uploadProgress = document.getElementById('uploadProgress');
+            uploadProgress.classList.add('visible');
+            document.getElementById('uploadBar').style.width = '10%';
 
-            function toggleMic() {
-                if (!mediaStream) return;
-                const audioTracks = mediaStream.getAudioTracks();
-                if (audioTracks.length > 0) {
-                    isMicOn = !isMicOn;
-                    audioTracks.forEach(t => t.enabled = isMicOn);
-                    btnMic.textContent = isMicOn ? '🎤 Mic On' : '🔇 Mic Off';
-                }
-            }
-
-            // ============ UI UPDATE BASED ON ROLE ============
-            function updateUIForRole() {
-                if (!currentUser) return;
-                const isSuperAdmin = currentUser.role === 'superadmin';
-                roleBadge.textContent = isSuperAdmin ? '👑 SUPER ADMIN' : '👤 USER';
-                roleBadge.className = 'role-badge ' + (isSuperAdmin ? 'role-superadmin' : 'role-normal');
-                userInfoTop.textContent = `${isSuperAdmin ? '👑' : '👤'} ${currentUser.username}`;
-                btnDeleteAll.style.display = isSuperAdmin ? 'inline-block' : 'none';
-                btnDeleteAllComments.style.display = isSuperAdmin ? 'inline-block' : 'none';
-                document.getElementById('sendComment').disabled = false;
-                document.getElementById('commentInput').disabled = false;
-                renderComments(); // Re-render to show/hide delete buttons
-            }
-
-            // ============ AUTH FLOW ============
-            function checkAuth() {
-                const auth = sessionStorage.getItem('matchstream_auth_user');
-                if (auth) {
-                    try {
-                        currentUser = JSON.parse(auth);
-                        isLoggedIn = true;
-                        authOverlay.classList.add('hidden');
-                        app.classList.add('active');
-                        updateUIForRole();
-                        cleanExpiredRecordings();
+            if (storage && db) {
+                // Firebase mode
+                uploadRecordingToFirebase(blob, metadata).then(() => {
+                    toast('✅ Recording uploaded to cloud!');
+                    loadRecordingsFromFirestore();
+                }).catch(err => {
+                    console.error('Upload failed:', err);
+                    toast('❌ Upload failed, saving locally...');
+                    saveToIndexedDB(blob, metadata).then(() => {
+                        uploadProgress.classList.remove('visible');
                         renderRecordings();
-                        renderComments();
-                        startCamera();
-                        return true;
-                    } catch (e) { sessionStorage.removeItem('matchstream_auth_user'); }
-                }
-                currentUser = null;
-                isLoggedIn = false;
-                authOverlay.classList.remove('hidden');
-                app.classList.remove('active');
-                stopCamera();
-                return false;
+                    });
+                });
+            } else if (dbFallback) {
+                // IndexedDB mode
+                saveToIndexedDB(blob, metadata).then(() => {
+                    uploadProgress.classList.remove('visible');
+                    renderRecordings();
+                    toast('✅ Recording saved locally! (50MB+ storage)');
+                });
+            } else {
+                // localStorage fallback
+                saveToLocalStorage(blob, metadata);
+                uploadProgress.classList.remove('visible');
+                renderRecordings();
+                toast('⚠️ Saved to localStorage (limited storage)');
             }
+            updateStorageInfo();
+        }
 
-            function handleAuth() {
-                const username = usernameInput.value.trim();
-                const password = passwordInput.value.trim();
+        // ==================== LOAD RECORDINGS ====================
+        async function loadRecordingsFromFirestore() {
+            if (!db) return;
+            try {
+                const snapshot = await db.collection('recordings')
+                    .orderBy('timestamp', 'desc')
+                    .limit(50)
+                    .get();
+                const recordings = [];
+                snapshot.forEach(doc => recordings.push(doc.data()));
+                window._firebaseRecordings = recordings;
+                renderRecordingsFromFirebase(recordings);
+            } catch (e) {
+                console.error('Firestore load error:', e);
+            }
+        }
 
-                if (!username || !password) {
-                    authError.textContent = 'Please fill all fields.';
-                    return;
-                }
+        function renderRecordingsFromFirebase(recordings) {
+            const recs = recordings || window._firebaseRecordings || [];
+            renderRecordingList(recs);
+        }
 
-                if (isRegisterMode) {
-                    const role = roleSelect.value;
-                    const result = registerUser(username, password, role);
-                    if (result.success) {
-                        toast(result.message);
-                        switchToLoginMode();
-                        authError.textContent = '';
+        function loadRecordingsFromIndexedDB() {
+            if (!dbFallback) return;
+            const tx = dbFallback.transaction('metadata', 'readonly');
+            const store = tx.objectStore('metadata');
+            const request = store.getAll();
+            request.onsuccess = () => {
+                window._localRecordings = request.result.sort((a, b) => b.timestamp - a.timestamp);
+                renderRecordingList(window._localRecordings);
+            };
+        }
+
+        function loadRecordingsFromLocalStorage() {
+            try {
+                window._localRecordings = JSON.parse(localStorage.getItem('matchstream_recordings_v3') || '[]');
+                renderRecordingList(window._localRecordings);
+            } catch (e) {
+                window._localRecordings = [];
+            }
+        }
+
+        function getActiveRecordings() {
+            if (window._firebaseRecordings) return window._firebaseRecordings;
+            if (window._localRecordings) return window._localRecordings;
+            return [];
+        }
+
+        function renderRecordingList(recs) {
+            const now = Date.now();
+            const expiryMs = EXPIRY_DAYS * 24 * 60 * 60 * 1000;
+            const active = recs.filter(r => (now - r.timestamp) < expiryMs);
+            const filterText = document.getElementById('searchInput').value.toLowerCase();
+            const filtered = filterText ? active.filter(r => r.name.toLowerCase().includes(filterText)) : active;
+
+            document.getElementById('recCount').textContent = `${filtered.length} videos`;
+            const list = document.getElementById('recordingsList');
+
+            if (filtered.length === 0) {
+                list.innerHTML = '<div class="no-recordings">📭 No recordings found.</div>';
+            } else {
+                list.innerHTML = filtered.map(r => {
+                    const canDelete = currentUser && (currentUser.role === 'superadmin' || r.uploadedBy ===
+                        currentUser.username);
+                    const expDate = new Date(r.timestamp + expiryMs).toLocaleDateString('en-IN', { day: '2-digit',
+                        month: 'short' });
+                    return `
+                    <div class="recording-item">
+                        <div class="recording-info">
+                            <span class="rec-name">🎬 ${escapeHtml(r.name)}</span>
+                            <span class="rec-meta">📅 ${formatDate(r.timestamp)} • ⏱ ${formatDuration(r.duration||0)} • 📦 ${(r.size/1024/1024).toFixed(1)} MB</span>
+                            <span class="expiry">🗑 Auto-delete: ${expDate}</span>
+                            <span class="uploader">📹 By: ${escapeHtml(r.uploadedBy || 'Unknown')} ${r.uploadedByRole === 'superadmin' ? '👑' : ''}</span>
+                        </div>
+                        <div class="rec-actions">
+                            <button class="btn-play" onclick="window._playRecording('${r.id}')">▶ Play</button>
+                            ${canDelete ? `<button class="btn-delete-rec" onclick="window._deleteRecording('${r.id}')">🗑</button>` : ''}
+                        </div>
+                    </div>`;
+                }).join('');
+            }
+        }
+
+        function renderRecordings(filter = '') {
+            const recs = getActiveRecordings();
+            renderRecordingList(recs);
+        }
+
+        // ==================== PLAY RECORDING ====================
+        window._playRecording = async function(id) {
+            const recs = getActiveRecordings();
+            const rec = recs.find(r => r.id === id);
+            if (!rec) { toast('❌ Recording not found.'); return; }
+
+            const video = document.getElementById('playbackVideo');
+            const modal = document.getElementById('playbackModal');
+
+            if (rec.downloadURL) {
+                // Firebase URL
+                video.src = rec.downloadURL;
+                modal.classList.add('active');
+            } else if (dbFallback) {
+                // IndexedDB
+                const tx = dbFallback.transaction('recordings', 'readonly');
+                const store = tx.objectStore('recordings');
+                const request = store.get(id);
+                request.onsuccess = () => {
+                    if (request.result && request.result.blob) {
+                        video.src = URL.createObjectURL(request.result.blob);
+                        modal.classList.add('active');
                     } else {
-                        authError.textContent = result.message;
+                        toast('❌ Video data not found.');
                     }
-                } else {
-                    const user = authenticateUser(username, password);
-                    if (user) {
-                        sessionStorage.setItem('matchstream_auth_user', JSON.stringify({
-                            username: user.username,
-                            role: user.role
-                        }));
-                        authError.textContent = '';
-                        usernameInput.value = '';
-                        passwordInput.value = '';
-                        checkAuth();
-                        toast(`✅ Welcome ${user.role === 'superadmin' ? 'Super Admin' : 'User'}!`);
-                    } else {
-                        authError.textContent = '❌ Invalid credentials!';
-                    }
+                };
+                request.onerror = () => toast('❌ Error loading video.');
+            } else {
+                toast('❌ Recording not available offline.');
+            }
+        };
+
+        window._deleteRecording = function(id) {
+            confirmMsg.textContent = 'Delete this recording? This cannot be undone.';
+            pendingConfirmAction = () => deleteRecordingAction(id);
+            confirmOverlay.classList.add('active');
+        };
+
+        async function deleteRecordingAction(id) {
+            const recs = getActiveRecordings();
+            const rec = recs.find(r => r.id === id);
+            if (!rec) return;
+
+            if (currentUser.role !== 'superadmin' && rec.uploadedBy !== currentUser.username) {
+                toast('❌ Only Super Admin can delete other users recordings!');
+                return;
+            }
+
+            if (rec.storagePath && storage) {
+                // Delete from Firebase
+                try {
+                    await storage.ref(rec.storagePath).delete();
+                    await db.collection('recordings').doc(id).delete();
+                } catch (e) { console.error('Firebase delete error:', e); }
+            }
+
+            if (dbFallback) {
+                const tx = dbFallback.transaction(['recordings', 'metadata'], 'readwrite');
+                tx.objectStore('recordings').delete(id);
+                tx.objectStore('metadata').delete(id);
+            }
+
+            toast('🗑 Recording deleted.');
+            updateStorageInfo();
+            renderRecordings();
+        }
+
+        // ==================== REMAINING APP CODE ====================
+        const SUPER_ADMIN_CODE = 'cricket2024';
+        const DEFAULT_SUPERADMIN = { username: 'admin', password: 'admin123', role: 'superadmin' };
+        const STORAGE_KEY_USERS = 'matchstream_users_v2';
+        const EXPIRY_DAYS = 7;
+
+        let mediaStream = null, mediaRecorder = null, recordedChunks = [];
+        let isRecording = false, recordingStartTime = null, timerInterval = null;
+        let isMicOn = true, currentRotation = 0;
+        let currentUser = null, isRegisterMode = false, pendingConfirmAction = null;
+
+        function getUsers() {
+            try {
+                let users = JSON.parse(localStorage.getItem(STORAGE_KEY_USERS)) || [];
+                if (!users.some(u => u.username === DEFAULT_SUPERADMIN.username)) {
+                    users.push({ ...DEFAULT_SUPERADMIN, createdAt: Date.now() });
+                    localStorage.setItem(STORAGE_KEY_USERS, JSON.stringify(users));
                 }
+                return users;
+            } catch (e) { return [DEFAULT_SUPERADMIN]; }
+        }
+
+        function saveUsers(users) { localStorage.setItem(STORAGE_KEY_USERS, JSON.stringify(users)); }
+
+        function registerUser(username, password, role) {
+            const users = getUsers();
+            if (users.some(u => u.username.toLowerCase() === username.toLowerCase()))
+                return { success: false, message: 'Username already exists!' };
+            if (username.length < 3) return { success: false, message: 'Username must be 3+ characters.' };
+            if (password.length < 6) return { success: false, message: 'Password must be 6+ characters.' };
+            if (role === 'superadmin' && document.getElementById('adminCodeInput').value.trim() !== SUPER_ADMIN_CODE)
+                return { success: false, message: 'Invalid Admin Secret Code!' };
+            users.push({ username, password, role, createdAt: Date.now() });
+            saveUsers(users);
+            return { success: true, message: 'Registration successful! Please login.' };
+        }
+
+        function authenticateUser(username, password) {
+            return getUsers().find(u =>
+                u.username.toLowerCase() === username.toLowerCase() && u.password === password
+            ) || null;
+        }
+
+        // Comments (localStorage + IndexedDB)
+        function getComments() {
+            try { return JSON.parse(localStorage.getItem('matchstream_comments_v2')) || []; } catch (e) { return []; }
+        }
+
+        function saveComments(comments) {
+            if (comments.length > 100) comments = comments.slice(-100);
+            localStorage.setItem('matchstream_comments_v2', JSON.stringify(comments));
+        }
+
+        function cleanExpiredComments() {
+            let comments = getComments();
+            const now = Date.now();
+            const filtered = comments.filter(c => (now - c.timestamp) < EXPIRY_DAYS * 24 * 60 * 60 * 1000);
+            if (filtered.length !== comments.length) saveComments(filtered);
+            return filtered;
+        }
+
+        function addComment(text) {
+            if (!currentUser) return;
+            let comments = cleanExpiredComments();
+            comments.push({
+                id: Date.now().toString(36),
+                username: currentUser.username,
+                role: currentUser.role,
+                text: text.trim(),
+                timestamp: Date.now()
+            });
+            saveComments(comments);
+            renderComments();
+            toast('💬 Comment added!');
+        }
+
+        function deleteComment(commentId) {
+            if (currentUser.role !== 'superadmin') { toast('❌ Only Super Admin can delete comments!'); return; }
+            let comments = getComments();
+            saveComments(comments.filter(c => c.id !== commentId));
+            renderComments();
+            toast('🗑 Comment deleted.');
+        }
+
+        function deleteAllComments() {
+            if (currentUser.role !== 'superadmin') { toast('❌ Only Super Admin can clear all comments!'); return; }
+            saveComments([]);
+            renderComments();
+            toast('🗑 All comments cleared.');
+        }
+
+        function renderComments() {
+            const comments = cleanExpiredComments();
+            const isSuperAdmin = currentUser && currentUser.role === 'superadmin';
+            document.getElementById('commentCount').textContent = `(${comments.length})`;
+            const btnClear = document.getElementById('btnClearComments');
+            btnClear.classList.toggle('visible', isSuperAdmin && comments.length > 0);
+
+            const list = document.getElementById('commentsList');
+            if (comments.length === 0) {
+                list.innerHTML = '<div style="color:var(--text2);font-size:0.75rem;">No comments yet.</div>';
+            } else {
+                list.innerHTML = comments.slice(-30).map(c => `
+                    <div class="comment-item">
+                        <span class="comment-user">${c.role==='superadmin'?'👑':'👤'} ${escapeHtml(c.username)}</span>
+                        <span class="comment-text">${escapeHtml(c.text)}</span>
+                        <span class="comment-time">${timeAgo(c.timestamp)}</span>
+                        ${isSuperAdmin?`<button class="comment-delete-btn" onclick="window._deleteComment('${c.id}')">✕</button>`:''}
+                    </div>
+                `).join('');
+                list.scrollTop = list.scrollHeight;
             }
+        }
 
-            function switchToRegisterMode() {
-                isRegisterMode = true;
-                authTitle.textContent = 'Create Account';
-                authSubtitle.textContent = 'Register for MatchStream';
-                authBtn.textContent = '📝 Register';
-                toggleAuthMode.textContent = 'Already have an account? Login';
-                roleSelect.style.display = 'block';
-                adminCodeInput.style.display = roleSelect.value === 'superadmin' ? 'block' : 'none';
-                authError.textContent = '';
-                usernameInput.value = '';
-                passwordInput.value = '';
-                adminCodeInput.value = '';
+        window._deleteComment = function(id) {
+            confirmMsg.textContent = 'Delete this comment?';
+            pendingConfirmAction = () => deleteComment(id);
+            document.getElementById('confirmOverlay').classList.add('active');
+        };
+
+        function escapeHtml(str) {
+            const d = document.createElement('div');
+            d.textContent = str;
+            return d.innerHTML;
+        }
+
+        function timeAgo(ts) {
+            const s = Math.floor((Date.now() - ts) / 1000);
+            if (s < 60) return 'now';
+            if (s < 3600) return `${Math.floor(s/60)}m`;
+            if (s < 86400) return `${Math.floor(s/3600)}h`;
+            return `${Math.floor(s/86400)}d`;
+        }
+
+        function formatDuration(s) {
+            return `${String(Math.floor(s/60)).padStart(2,'0')}:${String(s%60).padStart(2,'0')}`;
+        }
+
+        function formatDate(ts) {
+            return new Date(ts).toLocaleString('en-IN', { day:'2-digit', month:'short', year:'numeric', hour:'2-digit',
+                minute:'2-digit' });
+        }
+
+        async function startCamera() {
+            try {
+                mediaStream = await navigator.mediaDevices.getUserMedia({
+                    video: { width: { ideal: 1280 }, height: { ideal: 720 }, facingMode: 'environment' },
+                    audio: true
+                });
+                document.getElementById('livePreview').srcObject = mediaStream;
+                document.getElementById('livePreview').style.display = 'block';
+                document.getElementById('videoPlaceholder').style.display = 'none';
+                document.getElementById('btnStartStream').disabled = true;
+                document.getElementById('btnStopStream').disabled = false;
+                document.getElementById('btnRecord').disabled = false;
+                toast('📹 Camera & Mic active');
+            } catch (err) { toast('❌ Camera access denied!'); }
+        }
+
+        function stopCamera() {
+            if (mediaStream) { mediaStream.getTracks().forEach(t => t.stop());
+                mediaStream = null; }
+            document.getElementById('livePreview').srcObject = null;
+            document.getElementById('livePreview').style.display = 'none';
+            document.getElementById('videoPlaceholder').style.display = 'flex';
+            document.getElementById('btnStartStream').disabled = false;
+            document.getElementById('btnStopStream').disabled = true;
+            document.getElementById('btnRecord').disabled = true;
+            stopRecording(true);
+        }
+
+        function startRecording() {
+            if (!mediaStream) { toast('⚠️ Start stream first!'); return; }
+            if (isRecording) return;
+            recordedChunks = [];
+            try { mediaRecorder = new MediaRecorder(mediaStream, { mimeType: 'video/webm;codecs=vp9,opus' }); } catch (e) {
+                try { mediaRecorder = new MediaRecorder(mediaStream, { mimeType: 'video/webm' }); } catch (e2) { toast(
+                        '❌ Recording not supported.'); return; }
             }
+            mediaRecorder.ondataavailable = (e) => { if (e.data.size > 0) recordedChunks.push(e.data); };
+            mediaRecorder.onstop = () => {
+                if (recordedChunks.length > 0) {
+                    saveRecording(new Blob(recordedChunks, { type: 'video/webm' }));
+                }
+                recordedChunks = [];
+            };
+            mediaRecorder.start(1000);
+            isRecording = true;
+            recordingStartTime = Date.now();
+            const btn = document.getElementById('btnRecord');
+            btn.textContent = '⏹️ Stop Rec';
+            btn.classList.add('active-rec');
+            document.getElementById('recTimer').classList.add('visible');
+            startTimer();
+            toast('🔴 Recording started');
+        }
 
-            function switchToLoginMode() {
-                isRegisterMode = false;
-                authTitle.textContent = 'Welcome Back!';
-                authSubtitle.textContent = 'Login to your account';
-                authBtn.textContent = '🔐 Login';
-                toggleAuthMode.textContent = "Don't have an account? Register";
-                roleSelect.style.display = 'none';
-                adminCodeInput.style.display = 'none';
-                authError.textContent = '';
-                usernameInput.value = '';
-                passwordInput.value = '';
-            }
+        function stopRecording(silent = false) {
+            if (!isRecording) return;
+            if (mediaRecorder && mediaRecorder.state === 'recording') mediaRecorder.stop();
+            isRecording = false;
+            recordingStartTime = null;
+            const btn = document.getElementById('btnRecord');
+            btn.textContent = '🔴 Rec';
+            btn.classList.remove('active-rec');
+            document.getElementById('recTimer').classList.remove('visible');
+            stopTimer();
+            if (!silent) toast('⏹️ Recording saved.');
+        }
 
-            function logout() {
-                stopRecording(true);
-                stopCamera();
-                sessionStorage.removeItem('matchstream_auth_user');
-                currentUser = null;
-                isLoggedIn = false;
-                checkAuth();
-                toast('👋 Logged out.');
-            }
+        function startTimer() {
+            stopTimer();
+            timerInterval = setInterval(() => {
+                if (!recordingStartTime) return;
+                document.getElementById('timerText').textContent = formatDuration(Math.floor((Date.now() -
+                    recordingStartTime) / 1000));
+            }, 1000);
+        }
 
-            // ============ EVENT LISTENERS ============
-            authBtn.addEventListener('click', handleAuth);
-            passwordInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') handleAuth(); });
-            adminCodeInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') handleAuth(); });
-            toggleAuthMode.addEventListener('click', () => {
-                if (isRegisterMode) switchToLoginMode();
-                else switchToRegisterMode();
-            });
-            roleSelect.addEventListener('change', () => {
-                adminCodeInput.style.display = roleSelect.value === 'superadmin' ? 'block' : 'none';
-            });
-            btnLogout.addEventListener('click', logout);
-            btnStartStream.addEventListener('click', startCamera);
-            btnStopStream.addEventListener('click', stopCamera);
-            btnRecord.addEventListener('click', () => { if (isRecording) stopRecording(); else startRecording(); });
-            btnRotate.addEventListener('click', toggleRotate);
-            btnFullscreen.addEventListener('click', toggleFullscreen);
-            btnMic.addEventListener('click', toggleMic);
-            btnDeleteAll.addEventListener('click', () => {
-                confirmMsg.textContent = '⚠️ Delete ALL recordings? This cannot be undone!';
-                pendingConfirmAction = deleteAllRecordings;
-                confirmOverlay.classList.add('active');
-            });
-            btnDeleteAllComments.addEventListener('click', () => {
-                confirmMsg.textContent = '⚠️ Delete ALL comments? This cannot be undone!';
-                pendingConfirmAction = deleteAllComments;
-                confirmOverlay.classList.add('active');
-            });
-            btnClearComments.addEventListener('click', () => {
-                confirmMsg.textContent = '⚠️ Clear ALL comments?';
-                pendingConfirmAction = deleteAllComments;
-                confirmOverlay.classList.add('active');
-            });
-            searchInput.addEventListener('input', (e) => renderRecordings(e.target.value));
-            closeModal.addEventListener('click', () => { playbackVideo.pause();
-                playbackVideo.src = '';
-                playbackModal.classList.remove('active'); });
-            playbackModal.addEventListener('click', (e) => { if (e.target === playbackModal) { playbackVideo.pause();
-                    playbackVideo.src = '';
-                    playbackModal.classList.remove('active'); } });
-            sendComment.addEventListener('click', () => {
-                const text = commentInput.value.trim();
-                if (text) { addComment(text);
-                    commentInput.value = ''; }
-            });
-            commentInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') { const text = commentInput.value
-                        .trim(); if (text) { addComment(text);
-                        commentInput.value = ''; } } });
-            confirmYes.addEventListener('click', () => {
-                if (pendingConfirmAction) pendingConfirmAction();
-                confirmOverlay.classList.remove('active');
-                pendingConfirmAction = null;
-            });
-            confirmNo.addEventListener('click', () => { confirmOverlay.classList.remove('active');
-                pendingConfirmAction = null; });
-            confirmOverlay.addEventListener('click', (e) => { if (e.target === confirmOverlay) { confirmOverlay.classList
-                        .remove('active');
-                    pendingConfirmAction = null; } });
+        function stopTimer() { clearInterval(timerInterval);
+            timerInterval = null;
+            document.getElementById('timerText').textContent = '00:00'; }
 
-            // Auto-clean expired data every 5 minutes
-            setInterval(() => {
-                if (currentUser) {
-                    cleanExpiredRecordings();
-                    cleanExpiredComments();
-                    renderRecordings(searchInput.value);
+        function updateUIForRole() {
+            if (!currentUser) return;
+            const isSA = currentUser.role === 'superadmin';
+            document.getElementById('roleBadge').textContent = isSA ? '👑 SUPER ADMIN' : '👤 USER';
+            document.getElementById('roleBadge').className = 'role-badge ' + (isSA ? 'role-superadmin' : 'role-normal');
+            document.getElementById('userInfoTop').textContent = `${isSA?'👑':'👤'} ${currentUser.username}`;
+            document.getElementById('btnDeleteAll').style.display = isSA ? 'inline-block' : 'none';
+            document.getElementById('btnDeleteAllComments').style.display = isSA ? 'inline-block' : 'none';
+            renderComments();
+        }
+
+        function checkAuth() {
+            const auth = sessionStorage.getItem('matchstream_auth_user');
+            if (auth) {
+                try {
+                    currentUser = JSON.parse(auth);
+                    document.getElementById('authOverlay').classList.add('hidden');
+                    document.getElementById('app').classList.add('active');
+                    updateUIForRole();
+                    renderRecordings();
                     renderComments();
-                }
-            }, 300000);
-
-            // Toast function
-            function toast(msg) {
-                const t = document.createElement('div');
-                t.className = 'toast';
-                t.textContent = msg;
-                document.body.appendChild(t);
-                setTimeout(() => t.remove(), 3000);
+                    startCamera();
+                    updateStorageInfo();
+                    return true;
+                } catch (e) { sessionStorage.removeItem('matchstream_auth_user'); }
             }
+            currentUser = null;
+            document.getElementById('authOverlay').classList.remove('hidden');
+            document.getElementById('app').classList.remove('active');
+            stopCamera();
+            return false;
+        }
 
-            // Init
+        function handleAuth() {
+            const u = document.getElementById('usernameInput').value.trim();
+            const p = document.getElementById('passwordInput').value.trim();
+            if (!u || !p) { document.getElementById('authError').textContent = 'Fill all fields.'; return; }
+            if (isRegisterMode) {
+                const r = registerUser(u, p, document.getElementById('roleSelect').value);
+                if (r.success) { toast(r.message);
+                    switchToLoginMode();
+                    document.getElementById('authError').textContent = ''; } else document.getElementById('authError')
+                    .textContent = r.message;
+            } else {
+                const user = authenticateUser(u, p);
+                if (user) {
+                    sessionStorage.setItem('matchstream_auth_user', JSON.stringify({ username: user.username, role: user
+                            .role }));
+                    document.getElementById('authError').textContent = '';
+                    document.getElementById('usernameInput').value = '';
+                    document.getElementById('passwordInput').value = '';
+                    checkAuth();
+                    toast(`✅ Welcome!`);
+                } else document.getElementById('authError').textContent = '❌ Invalid credentials!';
+            }
+        }
+
+        function switchToRegisterMode() {
+            isRegisterMode = true;
+            document.getElementById('authTitle').textContent = 'Create Account';
+            document.getElementById('authSubtitle').textContent = 'Register';
+            document.getElementById('authBtn').textContent = '📝 Register';
+            document.getElementById('toggleAuthMode').textContent = 'Login instead?';
+            document.getElementById('roleSelect').style.display = 'block';
+            document.getElementById('adminCodeInput').style.display = 'none';
+            document.getElementById('authError').textContent = '';
+        }
+
+        function switchToLoginMode() {
+            isRegisterMode = false;
+            document.getElementById('authTitle').textContent = 'Welcome Back!';
+            document.getElementById('authSubtitle').textContent = 'Login';
+            document.getElementById('authBtn').textContent = '🔐 Login';
+            document.getElementById('toggleAuthMode').textContent = "Register?";
+            document.getElementById('roleSelect').style.display = 'none';
+            document.getElementById('adminCodeInput').style.display = 'none';
+            document.getElementById('authError').textContent = '';
+        }
+
+        function logout() {
+            stopRecording(true);
+            stopCamera();
+            sessionStorage.removeItem('matchstream_auth_user');
+            currentUser = null;
             checkAuth();
-            if (!getUsers().some(u => u.username === DEFAULT_SUPERADMIN.username)) {
-                saveUsers([...getUsers(), { ...DEFAULT_SUPERADMIN, createdAt: Date.now() }]);
-            }
+            toast('👋 Logged out.');
+        }
 
-            console.log('🏏 MatchStream Pro - Multi User Ready');
-            console.log('Super Admin: admin / admin123');
-            console.log('Admin Secret Code:', SUPER_ADMIN_CODE);
-            console.log('✅ Features:');
-            console.log('  - Super Admin can delete any comment (hover ✕ button)');
-            console.log('  - Super Admin can clear ALL comments');
-            console.log('  - Comments auto-delete after 7 days');
-            console.log('  - Recordings auto-delete after 7 days');
-            console.log('  - Normal users can only view & comment');
-        })();
+        function toast(msg) {
+            const t = document.createElement('div');
+            t.className = 'toast';
+            t.textContent = msg;
+            document.body.appendChild(t);
+            setTimeout(() => t.remove(), 3000);
+        }
+
+        // Event Listeners
+        document.getElementById('authBtn').addEventListener('click', handleAuth);
+        document.getElementById('passwordInput').addEventListener('keydown', e => { if (e.key === 'Enter') handleAuth(); });
+        document.getElementById('toggleAuthMode').addEventListener('click', () => isRegisterMode ? switchToLoginMode() :
+            switchToRegisterMode());
+        document.getElementById('roleSelect').addEventListener('change', function() {
+            document.getElementById('adminCodeInput').style.display = this.value === 'superadmin' ? 'block' : 'none';
+        });
+        document.getElementById('btnLogout').addEventListener('click', logout);
+        document.getElementById('btnStartStream').addEventListener('click', startCamera);
+        document.getElementById('btnStopStream').addEventListener('click', stopCamera);
+        document.getElementById('btnRecord').addEventListener('click', () => isRecording ? stopRecording() : startRecording());
+        document.getElementById('btnRotate').addEventListener('click', () => {
+            currentRotation = (currentRotation + 90) % 360;
+            const vc = document.getElementById('videoContainer');
+            vc.style.transform = `rotate(${currentRotation}deg)`;
+            vc.style.aspectRatio = (currentRotation === 90 || currentRotation === 270) ? '9/16' : '16/9';
+        });
+        document.getElementById('btnFullscreen').addEventListener('click', () => {
+            const vc = document.getElementById('videoContainer');
+            document.fullscreenElement ? document.exitFullscreen() : vc.requestFullscreen().catch(() => {});
+        });
+        document.getElementById('btnMic').addEventListener('click', () => {
+            if (!mediaStream) return;
+            isMicOn = !isMicOn;
+            mediaStream.getAudioTracks().forEach(t => t.enabled = isMicOn);
+            document.getElementById('btnMic').textContent = isMicOn ? '🎤 Mic On' : '🔇 Mic Off';
+        });
+        document.getElementById('btnDeleteAll').addEventListener('click', () => {
+            confirmMsg.textContent = '⚠️ Delete ALL recordings?';
+            pendingConfirmAction = () => {
+                if (dbFallback) {
+                    const tx = dbFallback.transaction(['recordings', 'metadata'], 'readwrite');
+                    tx.objectStore('recordings').clear();
+                    tx.objectStore('metadata').clear();
+                }
+                renderRecordings();
+                toast('🗑 All recordings deleted.');
+                updateStorageInfo();
+            };
+            document.getElementById('confirmOverlay').classList.add('active');
+        });
+        document.getElementById('btnDeleteAllComments').addEventListener('click', deleteAllComments);
+        document.getElementById('btnClearComments').addEventListener('click', deleteAllComments);
+        document.getElementById('searchInput').addEventListener('input', () => renderRecordings());
+        document.getElementById('closeModal').addEventListener('click', () => {
+            const v = document.getElementById('playbackVideo');
+            v.pause();
+            v.src = '';
+            document.getElementById('playbackModal').classList.remove('active');
+        });
+        document.getElementById('sendComment').addEventListener('click', () => {
+            const inp = document.getElementById('commentInput');
+            if (inp.value.trim()) { addComment(inp.value.trim());
+                inp.value = ''; }
+        });
+        document.getElementById('commentInput').addEventListener('keydown', e => {
+            if (e.key === 'Enter') {
+                const inp = document.getElementById('commentInput');
+                if (inp.value.trim()) { addComment(inp.value.trim());
+                    inp.value = ''; }
+            }
+        });
+        document.getElementById('confirmYes').addEventListener('click', () => {
+            if (pendingConfirmAction) pendingConfirmAction();
+            document.getElementById('confirmOverlay').classList.remove('active');
+            pendingConfirmAction = null;
+        });
+        document.getElementById('confirmNo').addEventListener('click', () => {
+            document.getElementById('confirmOverlay').classList.remove('active');
+            pendingConfirmAction = null;
+        });
+
+        // Initialize
+        initFirebase();
+        checkAuth();
+        updateStorageInfo();
+        setInterval(updateStorageInfo, 30000);
     </script>
 </body>
 </html>
