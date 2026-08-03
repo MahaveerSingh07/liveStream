@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🏏 Morning MatchStream</title>
+    <title>🏏 MatchStream Pro</title>
     <style>
         :root {
             --bg: #0a0a0f;
@@ -43,6 +43,7 @@
         .btn-sm:hover { background: #1a1a4e; }
         .btn-sm.active-rec { background: var(--danger); border-color: var(--danger); animation: recPulse 1s infinite; color: #fff; }
         @keyframes recPulse { 0%,100% { box-shadow: 0 0 0 0 rgba(231,76,60,0.6); } 50% { box-shadow: 0 0 0 10px rgba(231,76,60,0); } }
+        .btn-refresh { background: var(--success); border-color: var(--success); color: #fff; }
         .btn-logout { border-color: var(--danger); color: var(--danger); }
         .btn-logout:hover { background: var(--danger); color: #fff; }
         .main-content { display: flex; flex: 1; gap: 1rem; padding: 1rem; flex-wrap: wrap; }
@@ -59,7 +60,8 @@
         .rec-dot { width: 8px; height: 8px; background: var(--danger); border-radius: 50%; animation: pulse 0.8s infinite; }
         @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.4; } }
         .sidebar { flex: 1 1 30%; min-width: 280px; background: var(--surface); border-radius: 14px; border: 1px solid var(--border); padding: 1rem; display: flex; flex-direction: column; max-height: calc(100vh - 120px); }
-        .sidebar h3 { font-size: 1rem; margin-bottom: 0.8rem; color: var(--gold); display: flex; justify-content: space-between; }
+        .sidebar h3 { font-size: 1rem; margin-bottom: 0.5rem; color: var(--gold); display: flex; justify-content: space-between; align-items: center; }
+        .refresh-status { font-size: 0.6rem; color: var(--text2); }
         .search-box { width: 100%; padding: 0.5rem 0.8rem; border-radius: 20px; border: 1px solid var(--border); background: var(--surface2); color: var(--text); font-size: 0.85rem; margin-bottom: 0.8rem; outline: none; }
         .recordings-list { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 0.5rem; }
         .recording-item { background: var(--surface2); border-radius: 8px; padding: 0.7rem; display: flex; justify-content: space-between; align-items: center; gap: 0.5rem; flex-wrap: wrap; border: 1px solid transparent; }
@@ -106,7 +108,7 @@
     <div class="auth-overlay" id="authOverlay">
         <div class="auth-box">
             <div class="logo">🏏</div>
-            <h2>Morning MatchStream </h2>
+            <h2>MatchStream Pro</h2>
             <input type="text" id="usernameInput" placeholder="Username" autocomplete="off">
             <input type="password" id="passwordInput" placeholder="Password">
             <button class="btn btn-primary" id="authBtn">🔐 Login</button>
@@ -123,6 +125,7 @@
             </div>
             <div class="header-actions">
                 <span style="font-size:0.75rem;color:var(--text2);" id="userInfoTop">👤 User</span>
+                <button class="btn-sm btn-refresh" id="btnRefresh" title="Refresh Recordings">🔄 Refresh</button>
                 <button class="btn-sm" id="btnRotate">🔄</button>
                 <button class="btn-sm" id="btnFullscreen">⛶</button>
                 <button class="btn-sm" id="btnStartStream">▶️</button>
@@ -144,7 +147,13 @@
                 </div>
             </div>
             <div class="sidebar">
-                <h3>📁 Recordings <span style="font-size:0.65rem;color:var(--text2);" id="recCount">0</span></h3>
+                <h3>
+                    📁 Recordings 
+                    <span style="display:flex;align-items:center;gap:0.5rem;">
+                        <span style="font-size:0.65rem;color:var(--text2);" id="recCount">0</span>
+                        <span class="refresh-status" id="refreshStatus">Auto: 10s</span>
+                    </span>
+                </h3>
                 <input type="text" class="search-box" id="searchInput" placeholder="🔍 Search...">
                 <div class="recordings-list" id="recordingsList"><div style="color:var(--text2);text-align:center;padding:1rem;">Loading...</div></div>
                 <div class="comments-section">
@@ -192,6 +201,10 @@
         let db;
         firebase.initializeApp(firebaseConfig);
         db = firebase.firestore();
+        
+        // Enable offline persistence for faster loading
+        db.enablePersistence().catch(err => console.log('Offline persistence:', err.code));
+        
         console.log('✅ Firebase Firestore connected!');
 
         const USERS_KEY = 'ms_users_v1';
@@ -212,6 +225,7 @@
             currentRotation = 0;
         let currentUser = null,
             pendingAction = null;
+        let refreshInterval = null;
 
         function getUsers() {
             let u = JSON.parse(localStorage.getItem(USERS_KEY)) || [];
@@ -232,14 +246,12 @@
                 timestamp: Date.now() });
             saveComments(c);
             renderComments();
-            toast('💬 Sent');
         }
 
         function deleteComment(id) {
             if (currentUser.role !== 'superadmin') { toast('❌ Only Admin'); return; }
             saveComments(getComments().filter(c => c.id !== id));
             renderComments();
-            toast('🗑 Deleted');
         }
 
         function renderComments() {
@@ -277,63 +289,66 @@
                         videoData: reader.result,
                         expiry: Date.now() + EXPIRY_DAYS * 86400000
                     });
-                    toast('✅ Saved to cloud!');
-                    loadRecordings();
+                    toast('✅ Uploaded! Refreshing...');
+                    // Turant refresh after upload
+                    setTimeout(() => loadRecordings(), 500);
                 } catch (e) {
                     console.error(e);
-                    toast('❌ Upload failed');
+                    toast('❌ Upload failed: ' + e.message);
                 }
             };
+            reader.onerror = () => toast('❌ File read error');
             reader.readAsDataURL(blob);
             toast('📤 Uploading...');
         }
 
-        async function loadRecordings() {
+        async function loadRecordings(showToast = false) {
             if (!db) return;
             try {
                 const snap = await db.collection('recordings').orderBy('timestamp', 'desc').limit(30).get();
                 const recs = [];
-                snap.forEach(doc => recs.push(doc.data()));
-                renderRecordingList(recs);
+                snap.forEach(doc => recs.push({ id: doc.id, ...doc.data() }));
+                
+                if (showToast) toast('🔄 Refreshed! ' + recs.length + ' videos');
+                
+                const now = Date.now();
+                const active = recs.filter(r => r.expiry > now);
+                const filter = document.getElementById('searchInput').value.toLowerCase();
+                const filtered = filter ? active.filter(r => r.name.toLowerCase().includes(filter)) : active;
+                
+                document.getElementById('recCount').textContent = filtered.length;
+                document.getElementById('refreshStatus').textContent = 'Updated: ' + new Date().toLocaleTimeString('en-IN', {hour:'2-digit',minute:'2-digit',second:'2-digit'});
+                
+                const list = document.getElementById('recordingsList');
+                list.innerHTML = filtered.length ? filtered.map(r => {
+                    const canDel = currentUser && (currentUser.role === 'superadmin' || r.uploadedBy === currentUser.username);
+                    return `<div class="recording-item">
+                        <div class="recording-info">
+                            <div class="rec-name">🎬 ${r.name}</div>
+                            <div class="rec-meta">📅 ${new Date(r.timestamp).toLocaleString('en-IN')} • ⏱ ${String(Math.floor((r.duration||0)/60)).padStart(2,'0')}:${String((r.duration||0)%60).padStart(2,'0')} • 📦 ${(r.size/1024/1024).toFixed(1)}MB</div>
+                            <div class="expiry">🗑 ${new Date(r.expiry).toLocaleDateString('en-IN', {day:'2-digit',month:'short'})}</div>
+                            <div class="uploader">📹 ${r.uploadedBy} ${r.uploadedByRole==='superadmin'?'👑':''}</div>
+                        </div>
+                        <div class="rec-actions">
+                            <button class="btn-play" onclick="window._pr('${r.id}')">▶</button>
+                            ${canDel?`<button class="btn-delete-rec" onclick="window._dr('${r.id}')">🗑</button>`:''}
+                        </div></div>`;
+                }).join('') : '<div style="color:var(--text2);text-align:center;padding:1rem;">No recordings<br><small>Click 🔄 Refresh</small></div>';
             } catch (e) {
                 console.error(e);
-                document.getElementById('recordingsList').innerHTML =
-                    '<div style="color:var(--warning);text-align:center;padding:1rem;">⚠️ Firestore rules: allow read,write: if true;</div>';
+                document.getElementById('recordingsList').innerHTML = '<div style="color:var(--danger);text-align:center;padding:1rem;">⚠️ Error loading. Check console.</div>';
             }
         }
 
-        function renderRecordingList(recs) {
-            const now = Date.now();
-            const active = recs.filter(r => r.expiry > now);
-            const filter = document.getElementById('searchInput').value.toLowerCase();
-            const filtered = filter ? active.filter(r => r.name.toLowerCase().includes(filter)) : active;
-            document.getElementById('recCount').textContent = filtered.length;
-            const list = document.getElementById('recordingsList');
-            list.innerHTML = filtered.length ? filtered.map(r => {
-                const canDel = currentUser && (currentUser.role === 'superadmin' || r.uploadedBy === currentUser
-                    .username);
-                const exp = new Date(r.expiry).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' });
-                return `<div class="recording-item">
-                    <div class="recording-info">
-                        <div class="rec-name">🎬 ${r.name}</div>
-                        <div class="rec-meta">📅 ${new Date(r.timestamp).toLocaleString('en-IN')} • ⏱ ${String(Math.floor((r.duration||0)/60)).padStart(2,'0')}:${String((r.duration||0)%60).padStart(2,'0')} • 📦 ${(r.size/1024/1024).toFixed(1)}MB</div>
-                        <div class="expiry">🗑 ${exp}</div>
-                        <div class="uploader">📹 ${r.uploadedBy} ${r.uploadedByRole==='superadmin'?'👑':''}</div>
-                    </div>
-                    <div class="rec-actions">
-                        <button class="btn-play" onclick="window._pr('${r.id}')">▶</button>
-                        ${canDel?`<button class="btn-delete-rec" onclick="window._dr('${r.id}')">🗑</button>`:''}
-                    </div></div>`;
-            }).join('') : '<div style="color:var(--text2);text-align:center;padding:1rem;">No recordings</div>';
-        }
-
         window._pr = async function(id) {
-            const doc = await db.collection('recordings').doc(id).get();
-            if (doc.exists) {
-                const v = document.getElementById('playbackVideo');
-                v.src = doc.data().videoData;
-                document.getElementById('playbackModal').classList.add('active');
-            } else { toast('❌ Not found'); }
+            try {
+                const doc = await db.collection('recordings').doc(id).get();
+                if (doc.exists) {
+                    const v = document.getElementById('playbackVideo');
+                    v.src = doc.data().videoData;
+                    document.getElementById('playbackModal').classList.add('active');
+                } else { toast('❌ Not found'); }
+            } catch (e) { toast('❌ Play error'); }
         };
 
         window._dr = async function(id) {
@@ -346,6 +361,7 @@
             document.getElementById('confirmOverlay').classList.add('active');
         };
 
+        // Camera functions
         async function startCam() {
             try {
                 mediaStream = await navigator.mediaDevices.getUserMedia({
@@ -400,7 +416,7 @@
             document.getElementById('btnRecord').classList.remove('active-rec');
             document.getElementById('recTimer').classList.remove('visible');
             stopTimer();
-            if (!silent) toast('⏹️ Done');
+            if (!silent) toast('⏹️ Processing...');
         }
 
         function startTimer() {
@@ -408,14 +424,19 @@
             timerInterval = setInterval(() => {
                 if (!recordingStartTime) return;
                 const e = Math.floor((Date.now() - recordingStartTime) / 1000);
-                document.getElementById('timerText').textContent = String(Math.floor(e / 60)).padStart(2, '0') + ':' +
-                    String(e % 60).padStart(2, '0');
+                document.getElementById('timerText').textContent = String(Math.floor(e / 60)).padStart(2, '0') + ':' + String(e % 60).padStart(2, '0');
             }, 1000);
         }
 
         function stopTimer() { clearInterval(timerInterval);
             timerInterval = null;
             document.getElementById('timerText').textContent = '00:00'; }
+
+        function startAutoRefresh() {
+            if (refreshInterval) clearInterval(refreshInterval);
+            // Har 10 second mein auto-refresh
+            refreshInterval = setInterval(() => loadRecordings(), 10000);
+        }
 
         function login() {
             const u = document.getElementById('usernameInput').value.trim();
@@ -435,15 +456,15 @@
                 loadRecordings();
                 renderComments();
                 startCam();
-                setInterval(loadRecordings, 30000);
-                setInterval(renderComments, 15000);
-                toast('✅ Welcome!');
+                startAutoRefresh();
+                toast('✅ Welcome! Auto-refresh ON');
             } else { document.getElementById('authError').textContent = '❌ Invalid!'; }
         }
 
         function logout() {
             stopRec(true);
             stopCam();
+            if (refreshInterval) clearInterval(refreshInterval);
             sessionStorage.removeItem('ms_auth');
             currentUser = null;
             document.getElementById('authOverlay').classList.remove('hidden');
@@ -451,24 +472,24 @@
             toast('👋 Bye');
         }
 
+        // Event Listeners
         document.getElementById('authBtn').addEventListener('click', login);
         document.getElementById('passwordInput').addEventListener('keydown', e => e.key === 'Enter' && login());
         document.getElementById('btnStartStream').addEventListener('click', startCam);
         document.getElementById('btnStopStream').addEventListener('click', stopCam);
         document.getElementById('btnRecord').addEventListener('click', () => isRecording ? stopRec() : startRec());
+        document.getElementById('btnRefresh').addEventListener('click', () => loadRecordings(true));
         document.getElementById('btnRotate').addEventListener('click', () => { currentRotation = (currentRotation + 90) % 360;
             const vc = document.getElementById('videoContainer');
             vc.style.transform = `rotate(${currentRotation}deg)`;
             vc.style.aspectRatio = (currentRotation === 90 || currentRotation === 270) ? '9/16' : '16/9'; });
-        document.getElementById('btnFullscreen').addEventListener('click', () => { const vc = document.getElementById(
-                'videoContainer');
+        document.getElementById('btnFullscreen').addEventListener('click', () => { const vc = document.getElementById('videoContainer');
             document.fullscreenElement ? document.exitFullscreen() : vc.requestFullscreen().catch(() => {}); });
         document.getElementById('btnMic').addEventListener('click', () => { if (!mediaStream) return;
             isMicOn = !isMicOn;
             mediaStream.getAudioTracks().forEach(t => t.enabled = isMicOn);
             document.getElementById('btnMic').textContent = isMicOn ? '🎤 On' : '🔇 Off'; });
-        document.getElementById('btnDeleteAll').addEventListener('click', async () => { if (currentUser.role !==
-                'superadmin') return;
+        document.getElementById('btnDeleteAll').addEventListener('click', async () => { if (currentUser.role !== 'superadmin') return;
             document.getElementById('confirmMsg').textContent = 'Delete ALL?';
             pendingAction = async () => { const s = await db.collection('recordings').get();
                 s.forEach(d => d.ref.delete());
@@ -476,23 +497,19 @@
                 toast('🗑 All deleted'); };
             document.getElementById('confirmOverlay').classList.add('active'); });
         document.getElementById('btnLogout').addEventListener('click', logout);
-        document.getElementById('searchInput').addEventListener('input', loadRecordings);
-        document.getElementById('sendComment').addEventListener('click', () => { const i = document.getElementById(
-                'commentInput'); if (i.value.trim()) { addComment(i.value.trim());
+        document.getElementById('searchInput').addEventListener('input', () => loadRecordings());
+        document.getElementById('sendComment').addEventListener('click', () => { const i = document.getElementById('commentInput'); if (i.value.trim()) { addComment(i.value.trim());
                 i.value = ''; } });
-        document.getElementById('commentInput').addEventListener('keydown', e => { if (e.key === 'Enter') { const i =
-                    document.getElementById('commentInput'); if (i.value.trim()) { addComment(i.value.trim());
+        document.getElementById('commentInput').addEventListener('keydown', e => { if (e.key === 'Enter') { const i = document.getElementById('commentInput'); if (i.value.trim()) { addComment(i.value.trim());
                     i.value = ''; } } });
-        document.getElementById('closeModal').addEventListener('click', () => { const v = document.getElementById(
-                'playbackVideo');
+        document.getElementById('closeModal').addEventListener('click', () => { const v = document.getElementById('playbackVideo');
             v.pause();
             v.src = '';
             document.getElementById('playbackModal').classList.remove('active'); });
         document.getElementById('confirmYes').addEventListener('click', () => { if (pendingAction) pendingAction();
             document.getElementById('confirmOverlay').classList.remove('active');
             pendingAction = null; });
-        document.getElementById('confirmNo').addEventListener('click', () => { document.getElementById('confirmOverlay')
-                .classList.remove('active');
+        document.getElementById('confirmNo').addEventListener('click', () => { document.getElementById('confirmOverlay').classList.remove('active');
             pendingAction = null; });
 
         function toast(m) { const t = document.createElement('div');
@@ -501,6 +518,7 @@
             document.body.appendChild(t);
             setTimeout(() => t.remove(), 2500); }
 
+        // Auto-login
         const saved = sessionStorage.getItem('ms_auth');
         if (saved) {
             currentUser = JSON.parse(saved);
@@ -514,12 +532,13 @@
             loadRecordings();
             renderComments();
             startCam();
-            setInterval(loadRecordings, 30000);
-            setInterval(renderComments, 15000);
+            startAutoRefresh();
         }
 
-        console.log('🏏 MatchStream Pro - Firestore Version Ready!');
-        console.log('📦 Storage: Firestore (1GB Free) - No Upgrade Needed!');
+        console.log('🏏 MatchStream Pro v2.0 Ready!');
+        console.log('🔄 Auto-refresh: Every 10 seconds');
+        console.log('🔄 Manual refresh: Click Refresh button');
+        console.log('📱 Multi-device sync: YES');
     </script>
 </body>
 </html>
