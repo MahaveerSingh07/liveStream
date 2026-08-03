@@ -3,14 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🏏 MatchStream Pro - Firebase Storage</title>
+    <title>🏏 MatchStream Pro</title>
     <style>
         :root {
             --bg: #0a0a0f;
             --surface: #13132b;
             --surface2: #1a1a3e;
             --accent: #e94560;
-            --accent2: #0f3460;
             --gold: #f0c040;
             --text: #eee;
             --text2: #999;
@@ -18,256 +17,180 @@
             --warning: #f39c12;
             --danger: #e74c3c;
             --border: #2a2a4a;
-            --radius: 14px;
-            --shadow: 0 10px 40px rgba(0,0,0,0.5);
         }
-
         * { margin: 0; padding: 0; box-sizing: border-box; }
-
         body {
-            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            font-family: 'Segoe UI', system-ui, sans-serif;
             background: var(--bg);
             color: var(--text);
             min-height: 100vh;
-            overflow-x: hidden;
         }
-
         .auth-overlay {
             position: fixed; inset: 0;
             background: radial-gradient(ellipse at center, #1a1a3e 0%, #0a0a0f 70%);
             display: flex; align-items: center; justify-content: center; z-index: 1000;
-            transition: all 0.5s ease;
         }
-        .auth-overlay.hidden { opacity: 0; pointer-events: none; transform: scale(0.9); }
+        .auth-overlay.hidden { display: none; }
         .auth-box {
             background: var(--surface); border: 1px solid var(--border);
-            border-radius: var(--radius); padding: 3rem 2.5rem; width: 90%;
-            max-width: 420px; box-shadow: var(--shadow); text-align: center;
-            position: relative; overflow: hidden;
+            border-radius: 14px; padding: 2.5rem; width: 90%; max-width: 400px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.5); text-align: center;
         }
-        .auth-box::before {
-            content: ''; position: absolute; top: -50%; left: -50%; width: 200%; height: 200%;
-            background: conic-gradient(from 0deg, transparent, var(--accent), transparent, var(--gold), transparent);
-            opacity: 0.05; animation: rotateGlow 8s linear infinite;
-        }
-        @keyframes rotateGlow { 100% { transform: rotate(360deg); } }
-        .auth-box .logo { font-size: 3.5rem; margin-bottom: 0.5rem; position: relative; }
+        .auth-box .logo { font-size: 3rem; margin-bottom: 0.5rem; }
         .auth-box h2 {
-            font-size: 1.6rem; margin-bottom: 0.3rem;
+            font-size: 1.4rem; margin-bottom: 1.5rem;
             background: linear-gradient(135deg, #e94560, #f0c040);
-            -webkit-background-clip: text; -webkit-text-fill-color: transparent; position: relative;
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
         }
-        .auth-box .subtitle { font-size: 0.8rem; color: var(--text2); margin-bottom: 1.8rem; position: relative; }
-        .auth-box input, .auth-box select {
-            width: 100%; padding: 0.9rem 1rem; margin-bottom: 1rem;
+        .auth-box input {
+            width: 100%; padding: 0.8rem; margin-bottom: 0.8rem;
             border: 2px solid var(--border); border-radius: 10px;
-            background: var(--surface2); color: var(--text); font-size: 1rem;
-            transition: all 0.3s; outline: none; position: relative;
+            background: var(--surface2); color: var(--text); font-size: 1rem; outline: none;
         }
-        .auth-box input:focus, .auth-box select:focus {
-            border-color: var(--accent); box-shadow: 0 0 0 4px rgba(233,69,96,0.12);
-        }
-        .auth-box select { cursor: pointer; appearance: none; }
+        .auth-box input:focus { border-color: var(--accent); }
         .btn {
-            width: 100%; padding: 0.9rem; border: none; border-radius: 10px;
-            font-size: 1rem; font-weight: 700; cursor: pointer; transition: all 0.3s;
-            position: relative; letter-spacing: 0.5px;
+            width: 100%; padding: 0.8rem; border: none; border-radius: 10px;
+            font-size: 1rem; font-weight: 700; cursor: pointer;
         }
-        .btn-primary { background: linear-gradient(135deg, #e94560, #c0392b); color: #fff; }
-        .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 8px 25px rgba(233,69,96,0.4); }
-        .error-msg { color: var(--danger); font-size: 0.85rem; min-height: 22px; margin-top: 0.5rem; position: relative; }
-        .toggle-link { color: var(--accent); cursor: pointer; font-size: 0.85rem; margin-top: 0.8rem; position: relative; }
-        .toggle-link:hover { text-decoration: underline; }
+        .btn-primary { background: var(--accent); color: #fff; }
+        .btn-primary:hover { background: #d63851; }
+        .error-msg { color: var(--danger); font-size: 0.85rem; min-height: 20px; margin-top: 0.5rem; }
 
         .app { display: none; flex-direction: column; min-height: 100vh; }
         .app.active { display: flex; }
         .header {
             background: var(--surface); border-bottom: 1px solid var(--border);
-            padding: 0.7rem 1.5rem; display: flex; align-items: center;
-            justify-content: space-between; flex-wrap: wrap; gap: 0.8rem;
-            position: sticky; top: 0; z-index: 100; box-shadow: 0 2px 20px rgba(0,0,0,0.3);
+            padding: 0.7rem 1rem; display: flex; align-items: center;
+            justify-content: space-between; flex-wrap: wrap; gap: 0.5rem;
+            position: sticky; top: 0; z-index: 100;
         }
-        .header-left { display: flex; align-items: center; gap: 1rem; }
-        .logo-text {
-            font-size: 1.3rem; font-weight: 800;
-            background: linear-gradient(135deg, #e94560, #f0c040);
-            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-        }
+        .logo-text { font-size: 1.2rem; font-weight: 800; color: var(--gold); }
         .role-badge {
-            padding: 0.3rem 0.8rem; border-radius: 20px; font-size: 0.7rem;
-            font-weight: 700; letter-spacing: 1px; text-transform: uppercase;
+            padding: 0.2rem 0.6rem; border-radius: 20px; font-size: 0.65rem; font-weight: 700;
         }
         .role-superadmin { background: rgba(240,192,64,0.2); color: var(--gold); border: 1px solid var(--gold); }
         .role-normal { background: rgba(46,204,113,0.2); color: var(--success); border: 1px solid var(--success); }
-        .header-actions { display: flex; gap: 0.5rem; flex-wrap: wrap; align-items: center; }
+        .header-actions { display: flex; gap: 0.3rem; flex-wrap: wrap; align-items: center; }
         .btn-sm {
-            padding: 0.45rem 1rem; border-radius: 20px; font-size: 0.82rem;
+            padding: 0.35rem 0.7rem; border-radius: 20px; font-size: 0.72rem;
             border: 1px solid var(--border); background: var(--surface2); color: var(--text);
-            cursor: pointer; transition: all 0.3s; font-weight: 600; white-space: nowrap;
+            cursor: pointer; font-weight: 600; white-space: nowrap;
         }
-        .btn-sm:hover { background: var(--accent2); border-color: var(--accent); }
+        .btn-sm:hover { background: #1a1a4e; }
         .btn-sm.active-rec { background: var(--danger); border-color: var(--danger); animation: recPulse 1s infinite; color: #fff; }
-        @keyframes recPulse { 0%,100% { box-shadow: 0 0 0 0 rgba(231,76,60,0.6); } 50% { box-shadow: 0 0 0 14px rgba(231,76,60,0); } }
-        .btn-logout { background: transparent; border-color: var(--danger); color: var(--danger); }
+        @keyframes recPulse { 0%,100% { box-shadow: 0 0 0 0 rgba(231,76,60,0.6); } 50% { box-shadow: 0 0 0 10px rgba(231,76,60,0); } }
+        .btn-logout { border-color: var(--danger); color: var(--danger); }
         .btn-logout:hover { background: var(--danger); color: #fff; }
-        .user-info-top { font-size: 0.8rem; color: var(--text2); display: flex; align-items: center; gap: 0.3rem; }
-        .storage-info { font-size: 0.7rem; color: var(--text2); margin-left: 0.5rem; }
 
         .main-content { display: flex; flex: 1; gap: 1rem; padding: 1rem; flex-wrap: wrap; }
         .video-panel {
             flex: 1 1 65%; min-width: 320px; background: var(--surface);
-            border-radius: var(--radius); border: 1px solid var(--border);
-            overflow: hidden; display: flex; flex-direction: column; box-shadow: var(--shadow);
+            border-radius: 14px; border: 1px solid var(--border);
+            overflow: hidden; display: flex; flex-direction: column;
         }
         .video-container {
             position: relative; background: #000; aspect-ratio: 16/9;
-            display: flex; align-items: center; justify-content: center;
-            overflow: hidden; transition: transform 0.4s ease, aspect-ratio 0.4s ease;
+            display: flex; align-items: center; justify-content: center; overflow: hidden;
         }
-        .video-container.rotated { transform: rotate(90deg); aspect-ratio: 9/16; }
-        video { width: 100%; height: 100%; object-fit: contain; transition: transform 0.4s ease; }
-        .video-placeholder { color: #555; font-size: 1.1rem; text-align: center; pointer-events: none; position: absolute; }
+        video { width: 100%; height: 100%; object-fit: contain; }
+        .video-placeholder { color: #555; text-align: center; position: absolute; font-size: 1rem; }
         .video-controls-bar {
-            display: flex; gap: 0.5rem; padding: 0.7rem 1rem;
+            display: flex; gap: 0.5rem; padding: 0.6rem 1rem;
             background: var(--surface2); flex-wrap: wrap; align-items: center;
         }
         .btn-icon {
             background: var(--surface); border: 1px solid var(--border); color: var(--text);
-            padding: 0.45rem 0.8rem; border-radius: 6px; cursor: pointer;
-            transition: all 0.3s; font-size: 0.85rem; display: flex; align-items: center; gap: 0.3rem;
+            padding: 0.4rem 0.7rem; border-radius: 6px; cursor: pointer; font-size: 0.8rem;
         }
-        .btn-icon:hover { background: var(--accent2); border-color: var(--accent); }
-        .btn-icon:disabled { opacity: 0.4; cursor: not-allowed; pointer-events: none; }
+        .btn-icon:hover { background: #1a1a4e; }
+        .btn-icon:disabled { opacity: 0.4; pointer-events: none; }
         .rec-timer {
-            font-family: monospace; font-size: 1rem; font-weight: 700;
+            font-family: monospace; font-size: 0.9rem; font-weight: 700;
             color: var(--danger); margin-left: auto; display: none; align-items: center; gap: 0.3rem;
         }
         .rec-timer.visible { display: flex; }
-        .rec-timer .rec-dot { width: 10px; height: 10px; background: var(--danger); border-radius: 50%; animation: pulse 0.8s infinite; }
+        .rec-dot { width: 8px; height: 8px; background: var(--danger); border-radius: 50%; animation: pulse 0.8s infinite; }
+        @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.4; } }
 
         .sidebar {
-            flex: 1 1 30%; min-width: 300px; background: var(--surface);
-            border-radius: var(--radius); border: 1px solid var(--border);
-            padding: 1rem; box-shadow: var(--shadow); display: flex;
-            flex-direction: column; max-height: calc(100vh - 130px);
+            flex: 1 1 30%; min-width: 280px; background: var(--surface);
+            border-radius: 14px; border: 1px solid var(--border);
+            padding: 1rem; display: flex; flex-direction: column; max-height: calc(100vh - 120px);
         }
-        .sidebar h3 { font-size: 1.1rem; margin-bottom: 0.8rem; display: flex; align-items: center; gap: 0.5rem; justify-content: space-between; }
+        .sidebar h3 { font-size: 1rem; margin-bottom: 0.8rem; color: var(--gold); display: flex; justify-content: space-between; }
         .search-box {
-            width: 100%; padding: 0.6rem 1rem; border-radius: 20px;
+            width: 100%; padding: 0.5rem 0.8rem; border-radius: 20px;
             border: 1px solid var(--border); background: var(--surface2);
-            color: var(--text); font-size: 0.9rem; margin-bottom: 0.8rem; outline: none;
+            color: var(--text); font-size: 0.85rem; margin-bottom: 0.8rem; outline: none;
         }
-        .search-box:focus { border-color: var(--accent); }
-        .recordings-list { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 0.5rem; padding-right: 0.3rem; }
-        .recordings-list::-webkit-scrollbar { width: 5px; }
-        .recordings-list::-webkit-scrollbar-thumb { background: var(--border); border-radius: 10px; }
+        .recordings-list { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 0.5rem; }
         .recording-item {
-            background: var(--surface2); border-radius: 10px; padding: 0.8rem 0.9rem;
+            background: var(--surface2); border-radius: 8px; padding: 0.7rem;
             display: flex; justify-content: space-between; align-items: center;
-            gap: 0.5rem; flex-wrap: wrap; border: 1px solid transparent; transition: all 0.3s;
+            gap: 0.5rem; flex-wrap: wrap; border: 1px solid transparent;
         }
         .recording-item:hover { border-color: var(--accent); }
-        .recording-info { display: flex; flex-direction: column; gap: 0.2rem; flex: 1; min-width: 120px; }
-        .recording-info .rec-name { font-weight: 600; font-size: 0.85rem; word-break: break-all; }
-        .recording-info .rec-meta { font-size: 0.7rem; color: var(--text2); }
-        .recording-info .expiry { font-size: 0.7rem; color: var(--warning); }
-        .recording-info .uploader { font-size: 0.65rem; color: var(--accent); }
+        .recording-info { flex: 1; min-width: 100px; }
+        .recording-info .rec-name { font-weight: 600; font-size: 0.8rem; word-break: break-all; }
+        .recording-info .rec-meta { font-size: 0.65rem; color: var(--text2); }
+        .recording-info .expiry { font-size: 0.65rem; color: var(--warning); }
+        .recording-info .uploader { font-size: 0.6rem; color: var(--accent); }
         .rec-actions { display: flex; gap: 0.3rem; }
         .btn-play {
             background: var(--accent); color: #fff; border: none;
-            padding: 0.4rem 0.7rem; border-radius: 6px; cursor: pointer;
-            font-size: 0.75rem; transition: all 0.3s;
+            padding: 0.35rem 0.6rem; border-radius: 6px; cursor: pointer; font-size: 0.7rem;
         }
-        .btn-play:hover { background: #d63851; }
         .btn-delete-rec {
             background: transparent; border: 1px solid var(--danger); color: var(--danger);
-            padding: 0.35rem 0.6rem; border-radius: 6px; cursor: pointer;
-            font-size: 0.7rem; transition: all 0.3s;
+            padding: 0.3rem 0.5rem; border-radius: 6px; cursor: pointer; font-size: 0.65rem;
         }
         .btn-delete-rec:hover { background: var(--danger); color: #fff; }
-        .no-recordings { text-align: center; color: var(--text2); padding: 2rem; font-size: 0.9rem; }
-        .upload-progress {
-            width: 100%; height: 4px; background: var(--border); border-radius: 2px;
-            margin-top: 0.3rem; overflow: hidden; display: none;
-        }
-        .upload-progress.visible { display: block; }
-        .upload-progress .bar {
-            height: 100%; background: var(--success); transition: width 0.3s;
-            border-radius: 2px; width: 0%;
-        }
 
-        .comments-section {
-            margin-top: 0.8rem; border-top: 1px solid var(--border); padding-top: 0.8rem;
-        }
-        .comments-header {
-            display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;
-        }
-        .comments-section h4 { font-size: 0.9rem; display: flex; align-items: center; gap: 0.3rem; margin: 0; }
-        .btn-clear-comments {
-            background: transparent; border: 1px solid var(--warning); color: var(--warning);
-            padding: 0.25rem 0.6rem; border-radius: 15px; cursor: pointer;
-            font-size: 0.65rem; transition: all 0.3s; display: none;
-        }
-        .btn-clear-comments.visible { display: inline-block; }
-        .btn-clear-comments:hover { background: var(--warning); color: #000; }
-        .comments-list { max-height: 150px; overflow-y: auto; margin-bottom: 0.5rem; display: flex; flex-direction: column; gap: 0.4rem; }
-        .comments-list::-webkit-scrollbar { width: 4px; }
-        .comments-list::-webkit-scrollbar-thumb { background: var(--border); border-radius: 8px; }
+        .comments-section { margin-top: 0.8rem; border-top: 1px solid var(--border); padding-top: 0.8rem; }
+        .comments-section h4 { font-size: 0.85rem; margin-bottom: 0.5rem; }
+        .comments-list { max-height: 120px; overflow-y: auto; margin-bottom: 0.5rem; display: flex; flex-direction: column; gap: 0.3rem; }
         .comment-item {
-            background: var(--surface2); border-radius: 8px; padding: 0.4rem 0.7rem;
-            font-size: 0.78rem; display: flex; gap: 0.5rem; align-items: flex-start;
-            position: relative; transition: all 0.3s;
+            background: var(--surface2); border-radius: 6px; padding: 0.3rem 0.5rem;
+            font-size: 0.7rem; display: flex; gap: 0.3rem; align-items: center;
         }
-        .comment-item:hover { background: #1e1e45; }
         .comment-item .comment-user { font-weight: 700; color: var(--gold); white-space: nowrap; }
-        .comment-item .comment-text { color: var(--text2); word-break: break-word; flex: 1; }
-        .comment-item .comment-time { font-size: 0.6rem; color: #555; margin-left: auto; white-space: nowrap; }
+        .comment-item .comment-text { color: var(--text2); flex: 1; }
+        .comment-item .comment-time { font-size: 0.55rem; color: #555; }
         .comment-delete-btn {
             background: transparent; border: none; color: var(--danger);
-            cursor: pointer; font-size: 0.7rem; padding: 0.1rem 0.3rem;
-            border-radius: 50%; transition: all 0.2s; opacity: 0; line-height: 1;
+            cursor: pointer; font-size: 0.65rem; opacity: 0;
         }
         .comment-item:hover .comment-delete-btn { opacity: 1; }
-        .comment-delete-btn:hover { background: rgba(231,76,60,0.2); transform: scale(1.2); }
-        .comment-input-row { display: flex; gap: 0.4rem; }
+        .comment-input-row { display: flex; gap: 0.3rem; }
         .comment-input-row input {
-            flex: 1; padding: 0.5rem 0.7rem; border-radius: 20px;
+            flex: 1; padding: 0.4rem 0.6rem; border-radius: 20px;
             border: 1px solid var(--border); background: var(--surface2);
-            color: var(--text); font-size: 0.8rem; outline: none;
+            color: var(--text); font-size: 0.75rem; outline: none;
         }
-        .comment-input-row input:focus { border-color: var(--accent); }
         .comment-input-row button {
             background: var(--accent); color: #fff; border: none;
-            padding: 0.5rem 1rem; border-radius: 20px; cursor: pointer;
-            font-size: 0.8rem; font-weight: 600; transition: all 0.3s;
+            padding: 0.4rem 0.8rem; border-radius: 20px; cursor: pointer; font-size: 0.75rem;
         }
-        .comment-input-row button:hover { background: #d63851; }
-
         .modal-overlay {
             position: fixed; inset: 0; background: rgba(0,0,0,0.9);
             display: none; align-items: center; justify-content: center; z-index: 999;
         }
         .modal-overlay.active { display: flex; }
         .modal {
-            background: var(--surface); border-radius: var(--radius); padding: 1rem;
-            width: 90%; max-width: 850px; border: 1px solid var(--border);
+            background: var(--surface); border-radius: 14px; padding: 1rem;
+            width: 90%; max-width: 800px; border: 1px solid var(--border);
         }
-        .modal video { width: 100%; max-height: 75vh; border-radius: 10px; }
+        .modal video { width: 100%; max-height: 70vh; border-radius: 8px; }
         .modal-close {
             float: right; background: var(--danger); border: none; color: #fff;
-            width: 32px; height: 32px; border-radius: 50%; cursor: pointer;
-            font-size: 1.1rem; margin-bottom: 0.5rem; transition: all 0.3s;
+            width: 28px; height: 28px; border-radius: 50%; cursor: pointer; font-size: 1rem;
         }
-        .modal-close:hover { background: #c0392b; transform: scale(1.1); }
-
         .toast {
-            position: fixed; bottom: 20px; right: 20px; background: var(--surface);
-            border: 1px solid var(--border); padding: 0.8rem 1.2rem; border-radius: 10px;
-            z-index: 9999; animation: slideIn 0.4s ease; font-size: 0.85rem;
-            box-shadow: var(--shadow); max-width: 350px;
+            position: fixed; bottom: 15px; right: 15px; background: var(--surface);
+            border: 1px solid var(--border); padding: 0.6rem 1rem; border-radius: 8px;
+            z-index: 9999; animation: slideIn 0.3s; font-size: 0.8rem; max-width: 300px;
         }
         @keyframes slideIn { from { transform: translateX(120%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
-
         .confirm-overlay {
             position: fixed; inset: 0; background: rgba(0,0,0,0.85);
             display: none; align-items: center; justify-content: center; z-index: 9999;
@@ -275,105 +198,78 @@
         .confirm-overlay.active { display: flex; }
         .confirm-box {
             background: var(--surface); border: 1px solid var(--border);
-            border-radius: var(--radius); padding: 2rem; text-align: center;
-            max-width: 400px; width: 90%;
+            border-radius: 14px; padding: 1.5rem; text-align: center; max-width: 350px; width: 90%;
         }
-        .confirm-box p { margin-bottom: 1.5rem; font-size: 1rem; }
-        .confirm-box .btn-row { display: flex; gap: 0.8rem; justify-content: center; }
-        .confirm-box .btn-yes { background: var(--danger); color: #fff; border: none; padding: 0.6rem 1.5rem; border-radius: 8px; cursor: pointer; font-weight: 600; }
-        .confirm-box .btn-no { background: var(--surface2); color: var(--text); border: 1px solid var(--border); padding: 0.6rem 1.5rem; border-radius: 8px; cursor: pointer; font-weight: 600; }
-
+        .confirm-box p { margin-bottom: 1rem; }
+        .confirm-box .btn-row { display: flex; gap: 0.5rem; justify-content: center; }
+        .confirm-box .btn-yes { background: var(--danger); color: #fff; border: none; padding: 0.5rem 1.2rem; border-radius: 6px; cursor: pointer; }
+        .confirm-box .btn-no { background: var(--surface2); color: var(--text); border: 1px solid var(--border); padding: 0.5rem 1.2rem; border-radius: 6px; cursor: pointer; }
         @media (max-width: 768px) {
-            .main-content { flex-direction: column; padding: 0.5rem; }
+            .main-content { flex-direction: column; }
             .video-panel, .sidebar { flex: 1 1 100%; min-width: 100%; }
             .sidebar { max-height: none; }
-            .header { padding: 0.5rem 0.8rem; }
-            .logo-text { font-size: 1rem; }
-            .btn-sm { padding: 0.35rem 0.6rem; font-size: 0.7rem; }
-            .auth-box { padding: 2rem 1.5rem; }
         }
     </style>
 </head>
 <body>
 
-    <!-- AUTH OVERLAY -->
     <div class="auth-overlay" id="authOverlay">
         <div class="auth-box">
             <div class="logo">🏏</div>
-            <h2 id="authTitle">Welcome Back!</h2>
-            <p class="subtitle" id="authSubtitle">Login to your account</p>
+            <h2>MatchStream Pro</h2>
             <input type="text" id="usernameInput" placeholder="Username" autocomplete="off">
             <input type="password" id="passwordInput" placeholder="Password">
-            <select id="roleSelect" style="display:none;">
-                <option value="normal">Normal User (View Only)</option>
-                <option value="superadmin">Super Admin (Full Control)</option>
-            </select>
-            <input type="text" id="adminCodeInput" placeholder="Admin Secret Code" style="display:none;">
             <button class="btn btn-primary" id="authBtn">🔐 Login</button>
             <p class="error-msg" id="authError"></p>
-            <p class="toggle-link" id="toggleAuthMode">Don't have an account? Register</p>
+            <p style="color:var(--text2);font-size:0.7rem;margin-top:0.5rem;">
+                👑 admin / admin123<br>👤 user / user123
+            </p>
         </div>
     </div>
 
-    <!-- MAIN APP -->
     <div class="app" id="app">
         <header class="header">
-            <div class="header-left">
-                <span class="logo-text">🏏 MatchStream Pro</span>
+            <div style="display:flex;align-items:center;gap:0.8rem;">
+                <span class="logo-text">🏏 MatchStream</span>
                 <span class="role-badge" id="roleBadge">USER</span>
-                <span class="storage-info" id="storageInfo">💾 Storage: --</span>
             </div>
             <div class="header-actions">
-                <span class="user-info-top" id="userInfoTop">👤 User</span>
-                <button class="btn-sm" id="btnRotate" title="Rotate">🔄</button>
-                <button class="btn-sm" id="btnFullscreen" title="Fullscreen">⛶</button>
-                <button class="btn-sm" id="btnStartStream" title="Start Stream">▶️ Stream</button>
-                <button class="btn-sm" id="btnStopStream" title="Stop Stream" disabled>⏹️ Stop</button>
-                <button class="btn-sm" id="btnRecord" title="Record" disabled>🔴 Rec</button>
-                <button class="btn-sm" id="btnDeleteAll" title="Delete All Recordings" style="display:none;">🗑 All Rec</button>
-                <button class="btn-sm" id="btnDeleteAllComments" title="Delete All Comments" style="display:none;">💬 Clear</button>
-                <button class="btn-sm btn-logout" id="btnLogout">🚪 Logout</button>
+                <span style="font-size:0.75rem;color:var(--text2);" id="userInfoTop">👤 User</span>
+                <button class="btn-sm" id="btnRotate">🔄</button>
+                <button class="btn-sm" id="btnFullscreen">⛶</button>
+                <button class="btn-sm" id="btnStartStream">▶️</button>
+                <button class="btn-sm" id="btnStopStream" disabled>⏹️</button>
+                <button class="btn-sm" id="btnRecord" disabled>🔴</button>
+                <button class="btn-sm" id="btnDeleteAll" style="display:none;">🗑 All</button>
+                <button class="btn-sm btn-logout" id="btnLogout">🚪</button>
             </div>
         </header>
 
         <div class="main-content">
-            <div class="video-panel" id="videoPanel">
+            <div class="video-panel">
                 <div class="video-container" id="videoContainer">
                     <video id="livePreview" autoplay muted playsinline></video>
-                    <div class="video-placeholder" id="videoPlaceholder">
-                        📷 Camera preview<br><small>Click "Stream" to start</small>
-                    </div>
+                    <div class="video-placeholder" id="videoPlaceholder">📷 Click ▶️ to start</div>
                 </div>
                 <div class="video-controls-bar">
-                    <button class="btn-icon" id="btnMic" title="Mic">🎤 Mic On</button>
-                    <div class="upload-progress" id="uploadProgress">
-                        <div class="bar" id="uploadBar"></div>
-                    </div>
-                    <div class="rec-timer" id="recTimer">
-                        <span class="rec-dot"></span> <span id="timerText">00:00</span>
-                    </div>
+                    <button class="btn-icon" id="btnMic">🎤 On</button>
+                    <div class="rec-timer" id="recTimer"><span class="rec-dot"></span> <span id="timerText">00:00</span></div>
                 </div>
             </div>
 
             <div class="sidebar">
-                <h3>
-                    📁 Recordings
-                    <span style="font-size:0.7rem;color:var(--text2);" id="recCount">0 videos</span>
-                </h3>
-                <input type="text" class="search-box" id="searchInput" placeholder="🔍 Search recordings...">
+                <h3>📁 Recordings <span style="font-size:0.65rem;color:var(--text2);" id="recCount">0</span></h3>
+                <input type="text" class="search-box" id="searchInput" placeholder="🔍 Search...">
                 <div class="recordings-list" id="recordingsList">
-                    <div class="no-recordings">No recordings yet.</div>
+                    <div style="color:var(--text2);text-align:center;padding:1rem;">Loading...</div>
                 </div>
                 <div class="comments-section">
-                    <div class="comments-header">
-                        <h4>💬 Live Comments <span style="font-size:0.65rem;color:var(--text2);" id="commentCount">(0)</span></h4>
-                        <button class="btn-clear-comments" id="btnClearComments" title="Clear All Comments">🗑 Clear All</button>
-                    </div>
+                    <h4>💬 Comments <span style="font-size:0.6rem;" id="commentCount">(0)</span></h4>
                     <div class="comments-list" id="commentsList">
-                        <div style="color:var(--text2);font-size:0.75rem;">No comments yet. Be the first!</div>
+                        <div style="color:var(--text2);font-size:0.7rem;">No comments</div>
                     </div>
                     <div class="comment-input-row">
-                        <input type="text" id="commentInput" placeholder="Type a comment..." maxlength="200">
+                        <input type="text" id="commentInput" placeholder="Comment..." maxlength="200">
                         <button id="sendComment">Send</button>
                     </div>
                 </div>
@@ -381,7 +277,6 @@
         </div>
     </div>
 
-    <!-- PLAYBACK MODAL -->
     <div class="modal-overlay" id="playbackModal">
         <div class="modal">
             <button class="modal-close" id="closeModal">✕</button>
@@ -389,413 +284,87 @@
         </div>
     </div>
 
-    <!-- CONFIRMATION DIALOG -->
     <div class="confirm-overlay" id="confirmOverlay">
         <div class="confirm-box">
             <p id="confirmMsg">Are you sure?</p>
             <div class="btn-row">
                 <button class="btn-no" id="confirmNo">Cancel</button>
-                <button class="btn-yes" id="confirmYes">Yes, Delete</button>
+                <button class="btn-yes" id="confirmYes">Delete</button>
             </div>
         </div>
     </div>
 
-    <!-- Firebase SDKs -->
-    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js">
-    </script>
-    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-storage-compat.js">
-    </script>
-    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js">
-    </script>
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-storage-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
 
     <script>
-        // ==================== FIREBASE CONFIG ====================
-        // 🔴 IMPORTANT: Replace with your own Firebase config from console.firebase.google.com
+        // ============ FIREBASE CONFIG ============
         const firebaseConfig = {
-            apiKey: "AIzaSyD-PLACEHOLDER-KEY",
-            authDomain: "your-project.firebaseapp.com",
-            projectId: "your-project-id",
-            storageBucket: "your-project.appspot.com",
-            messagingSenderId: "123456789",
-            appId: "1:123456789:web:abc123"
+            apiKey: "AIzaSyDJeNJefhFRYwSiilYmYVHgU3_loOZkbK0",
+            authDomain: "matchstream-pro.firebaseapp.com",
+            projectId: "matchstream-pro",
+            storageBucket: "matchstream-pro.firebasestorage.app",
+            messagingSenderId: "35855908306",
+            appId: "1:35855908306:web:18391881b7f957dcc25c0b"
         };
 
         // Initialize Firebase
-        let firebaseApp, storage, db;
-
-        function initFirebase() {
-            try {
-                firebaseApp = firebase.initializeApp(firebaseConfig);
-                storage = firebase.storage();
-                db = firebase.firestore();
-                console.log('✅ Firebase connected');
-                updateStorageInfo();
-                loadRecordingsFromFirestore();
-            } catch (e) {
-                console.warn('⚠️ Firebase not configured. Using IndexedDB fallback.');
-                toast('⚠️ Firebase not configured. Using local storage fallback.');
-                initIndexedDB();
-            }
+        let storage, db;
+        try {
+            firebase.initializeApp(firebaseConfig);
+            storage = firebase.storage();
+            db = firebase.firestore();
+            console.log('✅ Firebase connected!');
+        } catch (e) {
+            console.error('Firebase init error:', e);
+            alert('Firebase connection failed! Check config.');
         }
 
-        // ==================== INDEXEDDB FALLBACK ====================
-        let dbFallback = null;
-
-        function initIndexedDB() {
-            const request = indexedDB.open('MatchStreamDB', 2);
-            request.onupgradeneeded = (e) => {
-                const db = e.target.result;
-                if (!db.objectStoreNames.contains('recordings')) {
-                    db.createObjectStore('recordings', { keyPath: 'id' });
-                }
-                if (!db.objectStoreNames.contains('metadata')) {
-                    db.createObjectStore('metadata', { keyPath: 'id' });
-                }
-                if (!db.objectStoreNames.contains('comments')) {
-                    db.createObjectStore('comments', { keyPath: 'id' });
-                }
-            };
-            request.onsuccess = (e) => {
-                dbFallback = e.target.result;
-                console.log('✅ IndexedDB ready (50MB+ storage)');
-                loadRecordingsFromIndexedDB();
-                loadCommentsFromIndexedDB();
-            };
-            request.onerror = () => {
-                console.error('❌ IndexedDB failed, using localStorage');
-                loadRecordingsFromLocalStorage();
-            };
-        }
-
-        // ==================== STORAGE FUNCTIONS ====================
-        function updateStorageInfo() {
-            if (navigator.storage && navigator.storage.estimate) {
-                navigator.storage.estimate().then(estimate => {
-                    const used = (estimate.usage / 1024 / 1024).toFixed(1);
-                    const quota = (estimate.quota / 1024 / 1024).toFixed(0);
-                    document.getElementById('storageInfo').textContent =
-                        `💾 ${used}MB / ${quota}MB`;
-                });
-            }
-        }
-
-        // ==================== RECORDING FUNCTIONS ====================
-        async function uploadRecordingToFirebase(blob, metadata) {
-            const uploadProgress = document.getElementById('uploadProgress');
-            const uploadBar = document.getElementById('uploadBar');
-
-            uploadProgress.classList.add('visible');
-            uploadBar.style.width = '0%';
-
-            const filename = `recordings/${metadata.id}.webm`;
-            const storageRef = storage.ref(filename);
-            const uploadTask = storageRef.put(blob);
-
-            return new Promise((resolve, reject) => {
-                uploadTask.on('state_changed',
-                    (snapshot) => {
-                        const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-                        uploadBar.style.width = progress + '%';
-                    },
-                    (error) => {
-                        uploadProgress.classList.remove('visible');
-                        reject(error);
-                    },
-                    async () => {
-                        const downloadURL = await uploadTask.snapshot.ref.getDownloadURL();
-                        await db.collection('recordings').doc(metadata.id).set({
-                            ...metadata,
-                            downloadURL: downloadURL,
-                            storagePath: filename
-                        });
-                        uploadProgress.classList.remove('visible');
-                        resolve(downloadURL);
-                    }
-                );
-            });
-        }
-
-        async function saveToIndexedDB(blob, metadata) {
-            return new Promise((resolve, reject) => {
-                if (!dbFallback) { reject('DB not ready'); return; }
-                const tx = dbFallback.transaction(['recordings', 'metadata'], 'readwrite');
-                const recStore = tx.objectStore('recordings');
-                const metaStore = tx.objectStore('metadata');
-
-                recStore.put({ id: metadata.id, blob: blob });
-                metaStore.put(metadata);
-
-                tx.oncomplete = () => resolve();
-                tx.onerror = () => reject(tx.error);
-            });
-        }
-
-        function saveRecording(blob) {
-            if (!currentUser) return;
-            const metadata = {
-                id: Date.now().toString(36) + Math.random().toString(36).substr(2, 8),
-                name: `Match_${new Date().toLocaleDateString('en-IN').replace(/\//g,'-')}_${new Date().toLocaleTimeString('en-IN', {hour:'2-digit',minute:'2-digit'})}`,
-                timestamp: Date.now(),
-                size: blob.size,
-                duration: recordingStartTime ? Math.round((Date.now() - recordingStartTime) / 1000) : 0,
-                uploadedBy: currentUser.username,
-                uploadedByRole: currentUser.role,
-                blob: null // Will be stored separately
-            };
-
-            const uploadProgress = document.getElementById('uploadProgress');
-            uploadProgress.classList.add('visible');
-            document.getElementById('uploadBar').style.width = '10%';
-
-            if (storage && db) {
-                // Firebase mode
-                uploadRecordingToFirebase(blob, metadata).then(() => {
-                    toast('✅ Recording uploaded to cloud!');
-                    loadRecordingsFromFirestore();
-                }).catch(err => {
-                    console.error('Upload failed:', err);
-                    toast('❌ Upload failed, saving locally...');
-                    saveToIndexedDB(blob, metadata).then(() => {
-                        uploadProgress.classList.remove('visible');
-                        renderRecordings();
-                    });
-                });
-            } else if (dbFallback) {
-                // IndexedDB mode
-                saveToIndexedDB(blob, metadata).then(() => {
-                    uploadProgress.classList.remove('visible');
-                    renderRecordings();
-                    toast('✅ Recording saved locally! (50MB+ storage)');
-                });
-            } else {
-                // localStorage fallback
-                saveToLocalStorage(blob, metadata);
-                uploadProgress.classList.remove('visible');
-                renderRecordings();
-                toast('⚠️ Saved to localStorage (limited storage)');
-            }
-            updateStorageInfo();
-        }
-
-        // ==================== LOAD RECORDINGS ====================
-        async function loadRecordingsFromFirestore() {
-            if (!db) return;
-            try {
-                const snapshot = await db.collection('recordings')
-                    .orderBy('timestamp', 'desc')
-                    .limit(50)
-                    .get();
-                const recordings = [];
-                snapshot.forEach(doc => recordings.push(doc.data()));
-                window._firebaseRecordings = recordings;
-                renderRecordingsFromFirebase(recordings);
-            } catch (e) {
-                console.error('Firestore load error:', e);
-            }
-        }
-
-        function renderRecordingsFromFirebase(recordings) {
-            const recs = recordings || window._firebaseRecordings || [];
-            renderRecordingList(recs);
-        }
-
-        function loadRecordingsFromIndexedDB() {
-            if (!dbFallback) return;
-            const tx = dbFallback.transaction('metadata', 'readonly');
-            const store = tx.objectStore('metadata');
-            const request = store.getAll();
-            request.onsuccess = () => {
-                window._localRecordings = request.result.sort((a, b) => b.timestamp - a.timestamp);
-                renderRecordingList(window._localRecordings);
-            };
-        }
-
-        function loadRecordingsFromLocalStorage() {
-            try {
-                window._localRecordings = JSON.parse(localStorage.getItem('matchstream_recordings_v3') || '[]');
-                renderRecordingList(window._localRecordings);
-            } catch (e) {
-                window._localRecordings = [];
-            }
-        }
-
-        function getActiveRecordings() {
-            if (window._firebaseRecordings) return window._firebaseRecordings;
-            if (window._localRecordings) return window._localRecordings;
-            return [];
-        }
-
-        function renderRecordingList(recs) {
-            const now = Date.now();
-            const expiryMs = EXPIRY_DAYS * 24 * 60 * 60 * 1000;
-            const active = recs.filter(r => (now - r.timestamp) < expiryMs);
-            const filterText = document.getElementById('searchInput').value.toLowerCase();
-            const filtered = filterText ? active.filter(r => r.name.toLowerCase().includes(filterText)) : active;
-
-            document.getElementById('recCount').textContent = `${filtered.length} videos`;
-            const list = document.getElementById('recordingsList');
-
-            if (filtered.length === 0) {
-                list.innerHTML = '<div class="no-recordings">📭 No recordings found.</div>';
-            } else {
-                list.innerHTML = filtered.map(r => {
-                    const canDelete = currentUser && (currentUser.role === 'superadmin' || r.uploadedBy ===
-                        currentUser.username);
-                    const expDate = new Date(r.timestamp + expiryMs).toLocaleDateString('en-IN', { day: '2-digit',
-                        month: 'short' });
-                    return `
-                    <div class="recording-item">
-                        <div class="recording-info">
-                            <span class="rec-name">🎬 ${escapeHtml(r.name)}</span>
-                            <span class="rec-meta">📅 ${formatDate(r.timestamp)} • ⏱ ${formatDuration(r.duration||0)} • 📦 ${(r.size/1024/1024).toFixed(1)} MB</span>
-                            <span class="expiry">🗑 Auto-delete: ${expDate}</span>
-                            <span class="uploader">📹 By: ${escapeHtml(r.uploadedBy || 'Unknown')} ${r.uploadedByRole === 'superadmin' ? '👑' : ''}</span>
-                        </div>
-                        <div class="rec-actions">
-                            <button class="btn-play" onclick="window._playRecording('${r.id}')">▶ Play</button>
-                            ${canDelete ? `<button class="btn-delete-rec" onclick="window._deleteRecording('${r.id}')">🗑</button>` : ''}
-                        </div>
-                    </div>`;
-                }).join('');
-            }
-        }
-
-        function renderRecordings(filter = '') {
-            const recs = getActiveRecordings();
-            renderRecordingList(recs);
-        }
-
-        // ==================== PLAY RECORDING ====================
-        window._playRecording = async function(id) {
-            const recs = getActiveRecordings();
-            const rec = recs.find(r => r.id === id);
-            if (!rec) { toast('❌ Recording not found.'); return; }
-
-            const video = document.getElementById('playbackVideo');
-            const modal = document.getElementById('playbackModal');
-
-            if (rec.downloadURL) {
-                // Firebase URL
-                video.src = rec.downloadURL;
-                modal.classList.add('active');
-            } else if (dbFallback) {
-                // IndexedDB
-                const tx = dbFallback.transaction('recordings', 'readonly');
-                const store = tx.objectStore('recordings');
-                const request = store.get(id);
-                request.onsuccess = () => {
-                    if (request.result && request.result.blob) {
-                        video.src = URL.createObjectURL(request.result.blob);
-                        modal.classList.add('active');
-                    } else {
-                        toast('❌ Video data not found.');
-                    }
-                };
-                request.onerror = () => toast('❌ Error loading video.');
-            } else {
-                toast('❌ Recording not available offline.');
-            }
-        };
-
-        window._deleteRecording = function(id) {
-            confirmMsg.textContent = 'Delete this recording? This cannot be undone.';
-            pendingConfirmAction = () => deleteRecordingAction(id);
-            confirmOverlay.classList.add('active');
-        };
-
-        async function deleteRecordingAction(id) {
-            const recs = getActiveRecordings();
-            const rec = recs.find(r => r.id === id);
-            if (!rec) return;
-
-            if (currentUser.role !== 'superadmin' && rec.uploadedBy !== currentUser.username) {
-                toast('❌ Only Super Admin can delete other users recordings!');
-                return;
-            }
-
-            if (rec.storagePath && storage) {
-                // Delete from Firebase
-                try {
-                    await storage.ref(rec.storagePath).delete();
-                    await db.collection('recordings').doc(id).delete();
-                } catch (e) { console.error('Firebase delete error:', e); }
-            }
-
-            if (dbFallback) {
-                const tx = dbFallback.transaction(['recordings', 'metadata'], 'readwrite');
-                tx.objectStore('recordings').delete(id);
-                tx.objectStore('metadata').delete(id);
-            }
-
-            toast('🗑 Recording deleted.');
-            updateStorageInfo();
-            renderRecordings();
-        }
-
-        // ==================== REMAINING APP CODE ====================
-        const SUPER_ADMIN_CODE = 'cricket2024';
-        const DEFAULT_SUPERADMIN = { username: 'admin', password: 'admin123', role: 'superadmin' };
-        const STORAGE_KEY_USERS = 'matchstream_users_v2';
+        // App State
+        const USERS_KEY = 'ms_users_v1';
+        const COMMENTS_KEY = 'ms_comments_v1';
         const EXPIRY_DAYS = 7;
+        const DEFAULT_USERS = [
+            { username: 'admin', password: 'admin123', role: 'superadmin' },
+            { username: 'user', password: 'user123', role: 'normal' }
+        ];
 
-        let mediaStream = null, mediaRecorder = null, recordedChunks = [];
-        let isRecording = false, recordingStartTime = null, timerInterval = null;
-        let isMicOn = true, currentRotation = 0;
-        let currentUser = null, isRegisterMode = false, pendingConfirmAction = null;
+        let mediaStream = null,
+            mediaRecorder = null,
+            recordedChunks = [];
+        let isRecording = false,
+            recordingStartTime = null,
+            timerInterval = null;
+        let isMicOn = true,
+            currentRotation = 0;
+        let currentUser = null,
+            pendingAction = null;
 
+        // Users
         function getUsers() {
-            try {
-                let users = JSON.parse(localStorage.getItem(STORAGE_KEY_USERS)) || [];
-                if (!users.some(u => u.username === DEFAULT_SUPERADMIN.username)) {
-                    users.push({ ...DEFAULT_SUPERADMIN, createdAt: Date.now() });
-                    localStorage.setItem(STORAGE_KEY_USERS, JSON.stringify(users));
-                }
-                return users;
-            } catch (e) { return [DEFAULT_SUPERADMIN]; }
+            let users = JSON.parse(localStorage.getItem(USERS_KEY)) || [];
+            if (users.length === 0) {
+                users = DEFAULT_USERS;
+                localStorage.setItem(USERS_KEY, JSON.stringify(users));
+            }
+            return users;
         }
 
-        function saveUsers(users) { localStorage.setItem(STORAGE_KEY_USERS, JSON.stringify(users)); }
-
-        function registerUser(username, password, role) {
-            const users = getUsers();
-            if (users.some(u => u.username.toLowerCase() === username.toLowerCase()))
-                return { success: false, message: 'Username already exists!' };
-            if (username.length < 3) return { success: false, message: 'Username must be 3+ characters.' };
-            if (password.length < 6) return { success: false, message: 'Password must be 6+ characters.' };
-            if (role === 'superadmin' && document.getElementById('adminCodeInput').value.trim() !== SUPER_ADMIN_CODE)
-                return { success: false, message: 'Invalid Admin Secret Code!' };
-            users.push({ username, password, role, createdAt: Date.now() });
-            saveUsers(users);
-            return { success: true, message: 'Registration successful! Please login.' };
-        }
-
-        function authenticateUser(username, password) {
-            return getUsers().find(u =>
-                u.username.toLowerCase() === username.toLowerCase() && u.password === password
-            ) || null;
-        }
-
-        // Comments (localStorage + IndexedDB)
+        // Comments
         function getComments() {
-            try { return JSON.parse(localStorage.getItem('matchstream_comments_v2')) || []; } catch (e) { return []; }
+            try { return JSON.parse(localStorage.getItem(COMMENTS_KEY)) || []; } catch (e) { return []; }
         }
 
-        function saveComments(comments) {
-            if (comments.length > 100) comments = comments.slice(-100);
-            localStorage.setItem('matchstream_comments_v2', JSON.stringify(comments));
-        }
-
-        function cleanExpiredComments() {
-            let comments = getComments();
-            const now = Date.now();
-            const filtered = comments.filter(c => (now - c.timestamp) < EXPIRY_DAYS * 24 * 60 * 60 * 1000);
-            if (filtered.length !== comments.length) saveComments(filtered);
-            return filtered;
+        function saveComments(c) {
+            if (c.length > 200) c = c.slice(-200);
+            localStorage.setItem(COMMENTS_KEY, JSON.stringify(c));
         }
 
         function addComment(text) {
             if (!currentUser) return;
-            let comments = cleanExpiredComments();
+            const comments = getComments();
             comments.push({
                 id: Date.now().toString(36),
                 username: currentUser.username,
@@ -805,77 +374,139 @@
             });
             saveComments(comments);
             renderComments();
-            toast('💬 Comment added!');
+            toast('💬 Sent');
         }
 
-        function deleteComment(commentId) {
-            if (currentUser.role !== 'superadmin') { toast('❌ Only Super Admin can delete comments!'); return; }
-            let comments = getComments();
-            saveComments(comments.filter(c => c.id !== commentId));
+        function deleteComment(id) {
+            if (currentUser.role !== 'superadmin') { toast('❌ Only Admin'); return; }
+            saveComments(getComments().filter(c => c.id !== id));
             renderComments();
-            toast('🗑 Comment deleted.');
-        }
-
-        function deleteAllComments() {
-            if (currentUser.role !== 'superadmin') { toast('❌ Only Super Admin can clear all comments!'); return; }
-            saveComments([]);
-            renderComments();
-            toast('🗑 All comments cleared.');
+            toast('🗑 Deleted');
         }
 
         function renderComments() {
-            const comments = cleanExpiredComments();
-            const isSuperAdmin = currentUser && currentUser.role === 'superadmin';
-            document.getElementById('commentCount').textContent = `(${comments.length})`;
-            const btnClear = document.getElementById('btnClearComments');
-            btnClear.classList.toggle('visible', isSuperAdmin && comments.length > 0);
-
+            const comments = getComments().filter(c => Date.now() - c.timestamp < EXPIRY_DAYS * 86400000);
+            document.getElementById('commentCount').textContent = '(' + comments.length + ')';
+            const isSA = currentUser && currentUser.role === 'superadmin';
             const list = document.getElementById('commentsList');
             if (comments.length === 0) {
-                list.innerHTML = '<div style="color:var(--text2);font-size:0.75rem;">No comments yet.</div>';
+                list.innerHTML = '<div style="color:var(--text2);font-size:0.7rem;">No comments</div>';
             } else {
                 list.innerHTML = comments.slice(-30).map(c => `
                     <div class="comment-item">
-                        <span class="comment-user">${c.role==='superadmin'?'👑':'👤'} ${escapeHtml(c.username)}</span>
-                        <span class="comment-text">${escapeHtml(c.text)}</span>
-                        <span class="comment-time">${timeAgo(c.timestamp)}</span>
-                        ${isSuperAdmin?`<button class="comment-delete-btn" onclick="window._deleteComment('${c.id}')">✕</button>`:''}
+                        <span class="comment-user">${c.role==='superadmin'?'👑':'👤'} ${c.username}</span>
+                        <span class="comment-text">${c.text.replace(/</g,'&lt;')}</span>
+                        <span class="comment-time">${Math.floor((Date.now()-c.timestamp)/60000)}m</span>
+                        ${isSA?`<button class="comment-delete-btn" onclick="window._delComment('${c.id}')">✕</button>`:''}
                     </div>
                 `).join('');
-                list.scrollTop = list.scrollHeight;
+            }
+        }
+        window._delComment = deleteComment;
+
+        // Recordings (Firebase)
+        async function uploadRecording(blob, metadata) {
+            const path = `videos/${metadata.id}.webm`;
+            const ref = storage.ref(path);
+            const snapshot = await ref.put(blob);
+            const url = await snapshot.ref.getDownloadURL();
+            await db.collection('recordings').doc(metadata.id).set({
+                ...metadata,
+                downloadURL: url,
+                storagePath: path
+            });
+            return url;
+        }
+
+        function saveRecording(blob) {
+            if (!currentUser) return;
+            const meta = {
+                id: Date.now().toString(36) + Math.random().toString(36).substr(2, 8),
+                name: `Match_${new Date().toLocaleDateString('en-IN')}_${new Date().toLocaleTimeString('en-IN', {hour:'2-digit',minute:'2-digit'})}`,
+                timestamp: Date.now(),
+                size: blob.size,
+                duration: recordingStartTime ? Math.round((Date.now() - recordingStartTime) / 1000) : 0,
+                uploadedBy: currentUser.username,
+                uploadedByRole: currentUser.role
+            };
+            toast('📤 Uploading...');
+            uploadRecording(blob, meta).then(() => {
+                toast('✅ Saved to cloud!');
+                loadRecordings();
+            }).catch(err => {
+                console.error('Upload failed:', err);
+                toast('❌ Upload failed');
+            });
+        }
+
+        async function loadRecordings() {
+            if (!db) return;
+            try {
+                const snap = await db.collection('recordings').orderBy('timestamp', 'desc').limit(50).get();
+                const recs = [];
+                snap.forEach(doc => recs.push(doc.data()));
+                renderRecordingList(recs);
+            } catch (e) {
+                console.error('Load error:', e);
+                document.getElementById('recordingsList').innerHTML =
+                    '<div style="color:var(--warning);text-align:center;padding:1rem;">⚠️ Check Firestore rules (allow read, write: if true)</div>';
             }
         }
 
-        window._deleteComment = function(id) {
-            confirmMsg.textContent = 'Delete this comment?';
-            pendingConfirmAction = () => deleteComment(id);
+        function renderRecordingList(recs) {
+            const now = Date.now();
+            const expiry = EXPIRY_DAYS * 86400000;
+            const active = recs.filter(r => (now - r.timestamp) < expiry);
+            const filter = document.getElementById('searchInput').value.toLowerCase();
+            const filtered = filter ? active.filter(r => r.name.toLowerCase().includes(filter)) : active;
+
+            document.getElementById('recCount').textContent = filtered.length;
+            const list = document.getElementById('recordingsList');
+
+            if (filtered.length === 0) {
+                list.innerHTML = '<div style="color:var(--text2);text-align:center;padding:1rem;">No recordings</div>';
+            } else {
+                list.innerHTML = filtered.map(r => {
+                    const canDel = currentUser && (currentUser.role === 'superadmin' || r.uploadedBy === currentUser
+                        .username);
+                    const exp = new Date(r.timestamp + expiry).toLocaleDateString('en-IN', { day: '2-digit',
+                        month: 'short' });
+                    return `<div class="recording-item">
+                        <div class="recording-info">
+                            <div class="rec-name">🎬 ${r.name}</div>
+                            <div class="rec-meta">📅 ${new Date(r.timestamp).toLocaleString('en-IN')} • ⏱ ${String(Math.floor((r.duration||0)/60)).padStart(2,'0')}:${String((r.duration||0)%60).padStart(2,'0')} • 📦 ${(r.size/1024/1024).toFixed(1)}MB</div>
+                            <div class="expiry">🗑 ${exp}</div>
+                            <div class="uploader">📹 ${r.uploadedBy} ${r.uploadedByRole==='superadmin'?'👑':''}</div>
+                        </div>
+                        <div class="rec-actions">
+                            <button class="btn-play" onclick="window._playRec('${r.downloadURL}')">▶</button>
+                            ${canDel?`<button class="btn-delete-rec" onclick="window._delRec('${r.id}','${r.storagePath}')">🗑</button>`:''}
+                        </div></div>`;
+                }).join('');
+            }
+        }
+
+        window._playRec = function(url) {
+            const v = document.getElementById('playbackVideo');
+            v.src = url;
+            document.getElementById('playbackModal').classList.add('active');
+        };
+
+        window._delRec = async function(id, path) {
+            document.getElementById('confirmMsg').textContent = 'Delete this recording?';
+            pendingAction = async () => {
+                try {
+                    await storage.ref(path).delete();
+                    await db.collection('recordings').doc(id).delete();
+                } catch (e) { console.error(e); }
+                loadRecordings();
+                toast('🗑 Deleted');
+            };
             document.getElementById('confirmOverlay').classList.add('active');
         };
 
-        function escapeHtml(str) {
-            const d = document.createElement('div');
-            d.textContent = str;
-            return d.innerHTML;
-        }
-
-        function timeAgo(ts) {
-            const s = Math.floor((Date.now() - ts) / 1000);
-            if (s < 60) return 'now';
-            if (s < 3600) return `${Math.floor(s/60)}m`;
-            if (s < 86400) return `${Math.floor(s/3600)}h`;
-            return `${Math.floor(s/86400)}d`;
-        }
-
-        function formatDuration(s) {
-            return `${String(Math.floor(s/60)).padStart(2,'0')}:${String(s%60).padStart(2,'0')}`;
-        }
-
-        function formatDate(ts) {
-            return new Date(ts).toLocaleString('en-IN', { day:'2-digit', month:'short', year:'numeric', hour:'2-digit',
-                minute:'2-digit' });
-        }
-
-        async function startCamera() {
+        // Camera
+        async function startCam() {
             try {
                 mediaStream = await navigator.mediaDevices.getUserMedia({
                     video: { width: { ideal: 1280 }, height: { ideal: 720 }, facingMode: 'environment' },
@@ -887,67 +518,64 @@
                 document.getElementById('btnStartStream').disabled = true;
                 document.getElementById('btnStopStream').disabled = false;
                 document.getElementById('btnRecord').disabled = false;
-                toast('📹 Camera & Mic active');
-            } catch (err) { toast('❌ Camera access denied!'); }
+                toast('📹 Ready');
+            } catch (e) { toast('❌ Camera denied'); }
         }
 
-        function stopCamera() {
+        function stopCam() {
             if (mediaStream) { mediaStream.getTracks().forEach(t => t.stop());
                 mediaStream = null; }
             document.getElementById('livePreview').srcObject = null;
             document.getElementById('livePreview').style.display = 'none';
-            document.getElementById('videoPlaceholder').style.display = 'flex';
+            document.getElementById('videoPlaceholder').style.display = 'block';
             document.getElementById('btnStartStream').disabled = false;
             document.getElementById('btnStopStream').disabled = true;
             document.getElementById('btnRecord').disabled = true;
-            stopRecording(true);
+            stopRec(true);
         }
 
-        function startRecording() {
-            if (!mediaStream) { toast('⚠️ Start stream first!'); return; }
-            if (isRecording) return;
+        function startRec() {
+            if (!mediaStream) return;
             recordedChunks = [];
-            try { mediaRecorder = new MediaRecorder(mediaStream, { mimeType: 'video/webm;codecs=vp9,opus' }); } catch (e) {
-                try { mediaRecorder = new MediaRecorder(mediaStream, { mimeType: 'video/webm' }); } catch (e2) { toast(
-                        '❌ Recording not supported.'); return; }
+            try {
+                mediaRecorder = new MediaRecorder(mediaStream, { mimeType: 'video/webm;codecs=vp9,opus' });
+            } catch (e) {
+                mediaRecorder = new MediaRecorder(mediaStream, { mimeType: 'video/webm' });
             }
-            mediaRecorder.ondataavailable = (e) => { if (e.data.size > 0) recordedChunks.push(e.data); };
+            mediaRecorder.ondataavailable = e => { if (e.data.size) recordedChunks.push(e.data); };
             mediaRecorder.onstop = () => {
-                if (recordedChunks.length > 0) {
-                    saveRecording(new Blob(recordedChunks, { type: 'video/webm' }));
-                }
+                if (recordedChunks.length) saveRecording(new Blob(recordedChunks, { type: 'video/webm' }));
                 recordedChunks = [];
             };
             mediaRecorder.start(1000);
             isRecording = true;
             recordingStartTime = Date.now();
-            const btn = document.getElementById('btnRecord');
-            btn.textContent = '⏹️ Stop Rec';
-            btn.classList.add('active-rec');
+            document.getElementById('btnRecord').textContent = '⏹️';
+            document.getElementById('btnRecord').classList.add('active-rec');
             document.getElementById('recTimer').classList.add('visible');
             startTimer();
-            toast('🔴 Recording started');
+            toast('🔴 Recording');
         }
 
-        function stopRecording(silent = false) {
+        function stopRec(silent) {
             if (!isRecording) return;
             if (mediaRecorder && mediaRecorder.state === 'recording') mediaRecorder.stop();
             isRecording = false;
             recordingStartTime = null;
-            const btn = document.getElementById('btnRecord');
-            btn.textContent = '🔴 Rec';
-            btn.classList.remove('active-rec');
+            document.getElementById('btnRecord').textContent = '🔴';
+            document.getElementById('btnRecord').classList.remove('active-rec');
             document.getElementById('recTimer').classList.remove('visible');
             stopTimer();
-            if (!silent) toast('⏹️ Recording saved.');
+            if (!silent) toast('⏹️ Done');
         }
 
         function startTimer() {
             stopTimer();
             timerInterval = setInterval(() => {
                 if (!recordingStartTime) return;
-                document.getElementById('timerText').textContent = formatDuration(Math.floor((Date.now() -
-                    recordingStartTime) / 1000));
+                const e = Math.floor((Date.now() - recordingStartTime) / 1000);
+                document.getElementById('timerText').textContent =
+                    String(Math.floor(e / 60)).padStart(2, '0') + ':' + String(e % 60).padStart(2, '0');
             }, 1000);
         }
 
@@ -955,180 +583,46 @@
             timerInterval = null;
             document.getElementById('timerText').textContent = '00:00'; }
 
-        function updateUIForRole() {
-            if (!currentUser) return;
-            const isSA = currentUser.role === 'superadmin';
-            document.getElementById('roleBadge').textContent = isSA ? '👑 SUPER ADMIN' : '👤 USER';
-            document.getElementById('roleBadge').className = 'role-badge ' + (isSA ? 'role-superadmin' : 'role-normal');
-            document.getElementById('userInfoTop').textContent = `${isSA?'👑':'👤'} ${currentUser.username}`;
-            document.getElementById('btnDeleteAll').style.display = isSA ? 'inline-block' : 'none';
-            document.getElementById('btnDeleteAllComments').style.display = isSA ? 'inline-block' : 'none';
-            renderComments();
-        }
-
-        function checkAuth() {
-            const auth = sessionStorage.getItem('matchstream_auth_user');
-            if (auth) {
-                try {
-                    currentUser = JSON.parse(auth);
-                    document.getElementById('authOverlay').classList.add('hidden');
-                    document.getElementById('app').classList.add('active');
-                    updateUIForRole();
-                    renderRecordings();
-                    renderComments();
-                    startCamera();
-                    updateStorageInfo();
-                    return true;
-                } catch (e) { sessionStorage.removeItem('matchstream_auth_user'); }
-            }
-            currentUser = null;
-            document.getElementById('authOverlay').classList.remove('hidden');
-            document.getElementById('app').classList.remove('active');
-            stopCamera();
-            return false;
-        }
-
-        function handleAuth() {
+        // Auth
+        function login() {
             const u = document.getElementById('usernameInput').value.trim();
             const p = document.getElementById('passwordInput').value.trim();
-            if (!u || !p) { document.getElementById('authError').textContent = 'Fill all fields.'; return; }
-            if (isRegisterMode) {
-                const r = registerUser(u, p, document.getElementById('roleSelect').value);
-                if (r.success) { toast(r.message);
-                    switchToLoginMode();
-                    document.getElementById('authError').textContent = ''; } else document.getElementById('authError')
-                    .textContent = r.message;
-            } else {
-                const user = authenticateUser(u, p);
-                if (user) {
-                    sessionStorage.setItem('matchstream_auth_user', JSON.stringify({ username: user.username, role: user
-                            .role }));
-                    document.getElementById('authError').textContent = '';
-                    document.getElementById('usernameInput').value = '';
-                    document.getElementById('passwordInput').value = '';
-                    checkAuth();
-                    toast(`✅ Welcome!`);
-                } else document.getElementById('authError').textContent = '❌ Invalid credentials!';
-            }
-        }
-
-        function switchToRegisterMode() {
-            isRegisterMode = true;
-            document.getElementById('authTitle').textContent = 'Create Account';
-            document.getElementById('authSubtitle').textContent = 'Register';
-            document.getElementById('authBtn').textContent = '📝 Register';
-            document.getElementById('toggleAuthMode').textContent = 'Login instead?';
-            document.getElementById('roleSelect').style.display = 'block';
-            document.getElementById('adminCodeInput').style.display = 'none';
-            document.getElementById('authError').textContent = '';
-        }
-
-        function switchToLoginMode() {
-            isRegisterMode = false;
-            document.getElementById('authTitle').textContent = 'Welcome Back!';
-            document.getElementById('authSubtitle').textContent = 'Login';
-            document.getElementById('authBtn').textContent = '🔐 Login';
-            document.getElementById('toggleAuthMode').textContent = "Register?";
-            document.getElementById('roleSelect').style.display = 'none';
-            document.getElementById('adminCodeInput').style.display = 'none';
-            document.getElementById('authError').textContent = '';
+            if (!u || !p) { document.getElementById('authError').textContent = 'Fill all fields'; return; }
+            const user = getUsers().find(x => x.username === u && x.password === p);
+            if (user) {
+                sessionStorage.setItem('ms_auth', JSON.stringify({ username: user.username, role: user.role }));
+                document.getElementById('authOverlay').classList.add('hidden');
+                document.getElementById('app').classList.add('active');
+                currentUser = { username: user.username, role: user.role };
+                const isSA = user.role === 'superadmin';
+                document.getElementById('roleBadge').textContent = isSA ? '👑 ADMIN' : '👤 USER';
+                document.getElementById('roleBadge').className = 'role-badge ' + (isSA ? 'role-superadmin' : 'role-normal');
+                document.getElementById('userInfoTop').textContent = (isSA ? '👑 ' : '👤 ') + user.username;
+                document.getElementById('btnDeleteAll').style.display = isSA ? 'inline-block' : 'none';
+                loadRecordings();
+                renderComments();
+                startCam();
+                setInterval(loadRecordings, 30000);
+                setInterval(renderComments, 15000);
+                toast('✅ Welcome!');
+            } else { document.getElementById('authError').textContent = '❌ Invalid!'; }
         }
 
         function logout() {
-            stopRecording(true);
-            stopCamera();
-            sessionStorage.removeItem('matchstream_auth_user');
+            stopRec(true);
+            stopCam();
+            sessionStorage.removeItem('ms_auth');
             currentUser = null;
-            checkAuth();
-            toast('👋 Logged out.');
-        }
-
-        function toast(msg) {
-            const t = document.createElement('div');
-            t.className = 'toast';
-            t.textContent = msg;
-            document.body.appendChild(t);
-            setTimeout(() => t.remove(), 3000);
+            document.getElementById('authOverlay').classList.remove('hidden');
+            document.getElementById('app').classList.remove('active');
+            toast('👋 Bye');
         }
 
         // Event Listeners
-        document.getElementById('authBtn').addEventListener('click', handleAuth);
-        document.getElementById('passwordInput').addEventListener('keydown', e => { if (e.key === 'Enter') handleAuth(); });
-        document.getElementById('toggleAuthMode').addEventListener('click', () => isRegisterMode ? switchToLoginMode() :
-            switchToRegisterMode());
-        document.getElementById('roleSelect').addEventListener('change', function() {
-            document.getElementById('adminCodeInput').style.display = this.value === 'superadmin' ? 'block' : 'none';
-        });
-        document.getElementById('btnLogout').addEventListener('click', logout);
-        document.getElementById('btnStartStream').addEventListener('click', startCamera);
-        document.getElementById('btnStopStream').addEventListener('click', stopCamera);
-        document.getElementById('btnRecord').addEventListener('click', () => isRecording ? stopRecording() : startRecording());
+        document.getElementById('authBtn').addEventListener('click', login);
+        document.getElementById('passwordInput').addEventListener('keydown', e => e.key === 'Enter' && login());
+        document.getElementById('btnStartStream').addEventListener('click', startCam);
+        document.getElementById('btnStopStream').addEventListener('click', stopCam);
+        document.getElementById('btnRecord').addEventListener('click', () => isRecording ? stopRec() : startRec());
         document.getElementById('btnRotate').addEventListener('click', () => {
-            currentRotation = (currentRotation + 90) % 360;
-            const vc = document.getElementById('videoContainer');
-            vc.style.transform = `rotate(${currentRotation}deg)`;
-            vc.style.aspectRatio = (currentRotation === 90 || currentRotation === 270) ? '9/16' : '16/9';
-        });
-        document.getElementById('btnFullscreen').addEventListener('click', () => {
-            const vc = document.getElementById('videoContainer');
-            document.fullscreenElement ? document.exitFullscreen() : vc.requestFullscreen().catch(() => {});
-        });
-        document.getElementById('btnMic').addEventListener('click', () => {
-            if (!mediaStream) return;
-            isMicOn = !isMicOn;
-            mediaStream.getAudioTracks().forEach(t => t.enabled = isMicOn);
-            document.getElementById('btnMic').textContent = isMicOn ? '🎤 Mic On' : '🔇 Mic Off';
-        });
-        document.getElementById('btnDeleteAll').addEventListener('click', () => {
-            confirmMsg.textContent = '⚠️ Delete ALL recordings?';
-            pendingConfirmAction = () => {
-                if (dbFallback) {
-                    const tx = dbFallback.transaction(['recordings', 'metadata'], 'readwrite');
-                    tx.objectStore('recordings').clear();
-                    tx.objectStore('metadata').clear();
-                }
-                renderRecordings();
-                toast('🗑 All recordings deleted.');
-                updateStorageInfo();
-            };
-            document.getElementById('confirmOverlay').classList.add('active');
-        });
-        document.getElementById('btnDeleteAllComments').addEventListener('click', deleteAllComments);
-        document.getElementById('btnClearComments').addEventListener('click', deleteAllComments);
-        document.getElementById('searchInput').addEventListener('input', () => renderRecordings());
-        document.getElementById('closeModal').addEventListener('click', () => {
-            const v = document.getElementById('playbackVideo');
-            v.pause();
-            v.src = '';
-            document.getElementById('playbackModal').classList.remove('active');
-        });
-        document.getElementById('sendComment').addEventListener('click', () => {
-            const inp = document.getElementById('commentInput');
-            if (inp.value.trim()) { addComment(inp.value.trim());
-                inp.value = ''; }
-        });
-        document.getElementById('commentInput').addEventListener('keydown', e => {
-            if (e.key === 'Enter') {
-                const inp = document.getElementById('commentInput');
-                if (inp.value.trim()) { addComment(inp.value.trim());
-                    inp.value = ''; }
-            }
-        });
-        document.getElementById('confirmYes').addEventListener('click', () => {
-            if (pendingConfirmAction) pendingConfirmAction();
-            document.getElementById('confirmOverlay').classList.remove('active');
-            pendingConfirmAction = null;
-        });
-        document.getElementById('confirmNo').addEventListener('click', () => {
-            document.getElementById('confirmOverlay').classList.remove('active');
-            pendingConfirmAction = null;
-        });
-
-        // Initialize
-        initFirebase();
-        checkAuth();
-        updateStorageInfo();
-        setInterval(updateStorageInfo, 30000);
-    </script>
-</body>
-</html>
+            currentRotation = (currentRotation + 90)
